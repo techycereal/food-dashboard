@@ -11,7 +11,7 @@ import {
 } from "recharts";
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState } from "../app/store";
-import { fetchReports, fetchTimeReports } from "../features/reports/reportSlice";
+import { fetchReports, fetchTimeReports, fetchPurchases } from "../features/reports/reportSlice";
 import Sidebar from "../components/Sidebar";
 import { Menu } from "lucide-react";
 import "@tailwindplus/elements";
@@ -33,6 +33,7 @@ export default function ReportsDashboard() {
     const navigate = useNavigate()
   // Fetch individual transactions
   useEffect(() => {
+    console.log(reports)
     if (reports.length === 0) {
       dispatch(fetchReports() as any);
     }
@@ -78,6 +79,7 @@ export default function ReportsDashboard() {
     if (!timePeriods.length) return;
 
     const filtered = timePeriods.filter((tp) => {
+      console.log(tp)
       switch (period) {
         case "daily":
           return tp.periodType === "day";
@@ -184,7 +186,7 @@ export default function ReportsDashboard() {
       </div>
       )}
       
-
+      <button className="bg-blue-400 p-4 rounded text-white" onClick={() => dispatch(fetchPurchases())}>Purchases</button>
       {/* Chart Section */}
       <div className="w-full h-[250px] sm:h-[400px] flex flex-col items-center bg-white p-4 border-black border-2 rounded shadow">
         {/* Period Buttons */}
@@ -226,7 +228,7 @@ export default function ReportsDashboard() {
               <th className="border p-2 text-left whitespace-nowrap">Total Price</th>
               <th className="border p-2 text-left whitespace-nowrap">Date</th>
             </tr>
-          </thead>
+          </thead> 
           <tbody>
             {reports.map((report) => (
               <tr key={report.id} className="hover:bg-gray-50">
@@ -235,17 +237,15 @@ export default function ReportsDashboard() {
                 <td className="border p-2">
                   <ul className="list-disc ml-4">
                     {report.items.map((obj, idx) => {
-                      const key = Object.keys(obj)[0];
-                      const entry = obj[key];
                       return (
                         <li key={idx}>
-                          {entry.item} (x{entry.quantity})
+                          {obj.item} (x{obj.quantity})
                         </li>
                       );
                     })}
                   </ul>
                 </td>
-                <td className="border p-2">${(report.price / 100).toFixed(2)}</td>
+                <td className="border p-2">${(report.totalPrice * 100).toFixed(2)}</td>
                 <td className="border p-2 whitespace-nowrap">
                   {new Date(report._ts * 1000).toLocaleString()}
                 </td>

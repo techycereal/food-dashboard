@@ -7,14 +7,24 @@ import {
   fetchOffers,
   saveOffers,
   toggleDeal,
+  
 } from "../features/offers/offerSlice";
 import type { RootState, AppDispatch } from "../app/store";
 import { PiSquareLogoFill } from "react-icons/pi";
-import axios from "axios";
-import { Menu, X } from "lucide-react";
+import { Menu } from "lucide-react";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { clearAuth, setCredentials } from "../features/auth/authSlice";
 import { useNavigate } from "react-router-dom";
+import DrinkModal from "../components/DrinkModal";
+
+type DealType = {
+  [key: string]: {
+    name: string;
+    future: string | null;
+    show: number;
+  }
+}
+
 export default function Offers() {
   const dispatch = useDispatch<AppDispatch>();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -34,6 +44,7 @@ export default function Offers() {
 
   const [squareConnected, setSquareConnected] = useState<boolean | null>(null);
   const [customers, setCustomers] = useState<any[]>([]);
+  const [drinkModal, setDrinkModal] = useState(false)
 
 useEffect(() => {
   const fetchCustomers = async () => {
@@ -79,7 +90,7 @@ useEffect(() => {
           console.log(emails.length)
           console.log(offers.length)
           if (emails.length === 0) dispatch(fetchEmails());
-          if (offers.length === 0) dispatch(fetchOffers());
+          if (Object.keys(offers).length === 0) dispatch(fetchOffers());
         } else {
           dispatch(clearAuth());
           navigate("/signin");
@@ -97,12 +108,10 @@ useEffect(() => {
     );
   }
 
-  const deals = [
-    "10% off your next purchase",
-    "Unlock secret menu items",
-    "Free drink with any meal",
-    "VIP early access to events",
-  ];
+  const deals: DealType = {
+    "Free drink with any meal": {name: "Free drink with any meal", future: 'null', show: 1},
+    "10% off your next purchase": {name: "10% off your next purchase", future: "10% off", show: 1},
+  };
 
   const getCustomers = async () => {
     try {
@@ -132,6 +141,11 @@ useEffect(() => {
         </button>
       </div>
       )}
+      {drinkModal && (
+        <div>
+          <DrinkModal setDrinkModal={setDrinkModal}/>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="flex-1 px-6 py-8 overflow-y-auto max-w-6xl mx-auto">
@@ -152,20 +166,20 @@ useEffect(() => {
               Select Deals
             </h2>
             <ul className="space-y-3">
-              {deals.map((deal) => (
+              {Object.keys(deals).map((deal) => (
                 <li key={deal} className="flex items-center">
                   <input
                     type="checkbox"
                     className="mr-3 w-5 h-5 accent-green-500"
-                    checked={offers.includes(deal)}
-                    onChange={() => dispatch(toggleDeal(deal))}
+                    checked={deal in offers}
+                    onChange={() => dispatch(toggleDeal({name: deal, future: deals[deal].future as string, show: deals[deal].show}))}
                   />
                   <span className="text-gray-700">{deal}</span>
                 </li>
               ))}
             </ul>
             <button
-              onClick={() => dispatch(saveOffers({ deals: offers, id: offerId }))}
+              onClick={() => dispatch(saveOffers({ deals, id: offerId }))}
               className="mt-6 w-full px-5 py-2 bg-green-500 text-white font-semibold rounded-xl hover:bg-green-600 transition"
             >
               {offerStatus === "loading" ? "Saving..." : "Save Offers"}
@@ -173,21 +187,37 @@ useEffect(() => {
           </div>
 
           {/* Selected Deals */}
-          <div className="bg-white rounded-2xl shadow-lg p-6">
-            <h2 className="text-xl font-bold text-gray-800 mb-4 text-center">
-              Selected Deals
-            </h2>
-            {offers.length === 0 ? (
-              <p className="text-gray-500 text-center">No deals selected yet.</p>
-            ) : (
-              <ul className="list-disc list-inside space-y-1 text-gray-700">
-                {offers.map((deal) => (
-                  <li key={deal}>{deal}</li>
-                ))}
-              </ul>
-            )}
-          </div>
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-auto">
+  <h2 className="text-2xl font-semibold text-gray-800 mb-5 text-center">
+    🎉 Selected Deals
+  </h2>
+            
+  {Object.keys(offers).length === 0 ? (
+    <p className="text-gray-500 text-center italic">
+      No deals selected yet.
+    </p>
+  ) : (
+    <ul className="space-y-3">
+      {Object.keys(offers).map((deal) => (
+        <li
+          key={deal}
+          className="flex justify-between items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 hover:bg-gray-100 transition-all"
+        >
+          <span className="text-gray-800 font-medium">{deal}</span>
 
+          {deal === "Free drink with any meal" && (
+            <button
+              onClick={() => setDrinkModal(true)}
+              className="text-sm font-semibold text-white bg-blue-500 hover:bg-blue-600 px-3 py-1.5 rounded-lg shadow-sm transition-all"
+            >
+              Select Drink
+            </button>
+          )}
+        </li>
+      ))}
+    </ul>
+  )}
+</div>
           {/* Emails */}
           <div className="bg-white rounded-2xl shadow-lg p-6 md:col-span-2">
             <div className="flex justify-between items-center mb-4">
@@ -208,14 +238,18 @@ useEffect(() => {
                 </p>
               ) : (
                 <ul className="space-y-2">
+                  {emails.length > 0 && 
+                  <>
                   {emails.map((email, index) => (
                     <li
                       key={index}
                       className="px-4 py-2 bg-gray-50 rounded-lg border border-gray-200 text-gray-700 shadow-sm hover:bg-gray-100 transition"
                     >
-                      {email}
+                      {email.email}
                     </li>
                   ))}
+                  </>
+                  }
                 </ul>
               )}
             </div>

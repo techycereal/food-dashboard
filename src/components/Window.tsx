@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from "react-redux";
 import type { RootState, AppDispatch } from "../app/store";
 import { type Item } from "../features/products/productSlice";
 import confetti from "canvas-confetti";
+import WifiProvisioner from "./WifiProvision";
 
 interface WindowProps {
   handleEdit: (item: Item, index: number) => void;
@@ -197,6 +198,7 @@ export default function Window({ handleEdit, setSelectedItem }: WindowProps) {
       >
         {syncing ? "🚀 Launching…" : success ? "✅ Data Synced!" : "Sync Data"}
       </button>
+      <WifiProvisioner/>
 
       {/* Bottom Ledge */}
       <div className="bg-[#4c4c4c] h-5 w-full shadow-xl rounded-sm" />

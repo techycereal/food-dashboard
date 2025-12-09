@@ -26,6 +26,14 @@ export const fetchReports = createAsyncThunk<void,{ state: RootState }>("reports
   return response.data.message || [];
 });
 
+export const fetchPurchases = createAsyncThunk<void,{ state: RootState }>("reports/fetchPurchases", async (_, { getState }) => {
+  const token = getState().auth.token;
+  const response = await axios.get("http://localhost:3001/get_purchases", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  return response.data.message || [];
+});
+
 export const fetchTimeReports = createAsyncThunk<void,{ state: RootState }>("reports/fetchTimeReports", async (_, { getState }) => {
   const token = getState().auth.token;
   const response = await axios.get("http://localhost:3001/get_time_report", {
@@ -76,6 +84,18 @@ const reportsSlice = createSlice({
         state.timeReports = action.payload;
       })
       .addCase(fetchTimeReports.rejected, (state) => {
+        state.timeStatus = "failed";
+      });
+
+      builder
+      .addCase(fetchPurchases.pending, (state) => {
+        state.timeStatus = "loading";
+      })
+      .addCase(fetchPurchases.fulfilled, (state, action: PayloadAction<any[]>) => {
+        state.timeStatus = "idle";
+        state.timeReports = action.payload;
+      })
+      .addCase(fetchPurchases.rejected, (state) => {
         state.timeStatus = "failed";
       });
   },

@@ -33,6 +33,7 @@ export default function App() {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const { user } = useSelector((state: any) => state.auth);
+  const auth = useSelector((state: any) => state.auth.token)
 
   useEffect(() => {
     const auth = getAuth();
@@ -89,13 +90,14 @@ export default function App() {
 
   const deleteItem = async () => {
     dispatch(deleteProduct(selectedItem?.id as string));
-    await axios.post("http://localhost:3001/delete_data", selectedItem);
+    console.log(user)
+    await axios.post("http://localhost:3001/delete_data", selectedItem, { headers: { "Authorization": `Bearer ${auth}` } });
   };
 
   return (
     <div className="h-screen w-full bg-[#b8f2f1] relative overflow-hidden">
       <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
-      
+
       {!mobileOpen && (
         <div className="absolute top-4 left-4 md:hidden z-40">
           <button
@@ -113,7 +115,6 @@ export default function App() {
         <Window handleEdit={handleEdit} setSelectedItem={setSelectedItem} />
 
         <HangingSign onClick={() => setIsModalOpen(true)} />
-
         <div className="flex flex-col items-center justify-center">
           {isModalOpen && (
             <Modal
