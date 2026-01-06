@@ -1,5 +1,5 @@
 import type { FC } from "react";
-
+import { useState, useEffect } from "react";
 interface Item {
   fileUrl: string;
   item: string;
@@ -14,13 +14,25 @@ interface DeleteModalProps {
 }
 
 const DeleteModal: FC<DeleteModalProps> = ({ onClose, onConfirm, item }) => {
+  const [isVisible, setIsVisible] = useState(false)
+  useEffect(() => {
+    const timer = setTimeout(() => setIsVisible(true), 10); // small delay to trigger transition
+    return () => clearTimeout(timer);
+  }, []);
+  const handleClose = () => {
+    setIsVisible(false)
+    setTimeout(onClose, 300)
+  }
   if (!item) return null;
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
       {/* Modal */}
       <div
-        className="bg-white rounded-lg shadow-xl p-6 w-[90%] max-w-sm animate-slideDown relative"
+        className={`bg-white rounded-lg shadow-xl p-6 w-[90%] max-w-sm transform transition-all duration-300 ease-out
+    ${isVisible
+            ? "translate-y-0 opacity-100"
+            : "-translate-y-20 opacity-0"}`}
         onClick={(e) => e.stopPropagation()} // stop clicks inside modal from closing it
       >
         <h2 className="text-lg font-bold mb-4">Confirm Deletion</h2>
@@ -31,7 +43,7 @@ const DeleteModal: FC<DeleteModalProps> = ({ onClose, onConfirm, item }) => {
 
         <div className="flex justify-end gap-3">
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300"
           >
             Cancel
@@ -39,7 +51,7 @@ const DeleteModal: FC<DeleteModalProps> = ({ onClose, onConfirm, item }) => {
           <button
             onClick={() => {
               onConfirm();
-              onClose();
+              handleClose();
             }}
             className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700"
           >
@@ -48,16 +60,6 @@ const DeleteModal: FC<DeleteModalProps> = ({ onClose, onConfirm, item }) => {
         </div>
       </div>
 
-      {/* Animation */}
-      <style>{`
-        @keyframes slideDown {
-          0% { transform: translateY(-50px); opacity: 0; }
-          100% { transform: translateY(0); opacity: 1; }
-        }
-        .animate-slideDown {
-          animation: slideDown 0.3s ease-out;
-        }
-      `}</style>
     </div>
   );
 };

@@ -1,8 +1,16 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from "@reduxjs/toolkit";
 import axios from "axios";
-import type { Key } from "react";
+import type { Key, ReactNode } from "react";
 import type { RootState } from "../../app/store";
+import { auth } from "../../lib/firebase";
+
+/* =======================
+   TYPES
+======================= */
+
 type Item = {
+  quantity: ReactNode;
+  item: ReactNode;
   id: {
     quantity: number;
     item: string;
@@ -11,6 +19,7 @@ type Item = {
 };
 
 type Report = {
+  totalPrice: number;
   _ts: number;
   id: Key | null | undefined;
   items: Item[];
@@ -18,50 +27,111 @@ type Report = {
   price: number;
 };
 
-export const fetchReports = createAsyncThunk<void,{ state: RootState }>("reports/fetchReports", async (_, { getState }) => {
-  const token = getState().auth.token;
+type Purchase = {
+  id: number;
+  email: string;
+  price: number;
+  item: string;
+  quantity: number;
+  timestamp: number;
+};
+
+type PurchasesResponse = {
+  piId: string;
+  data: Purchase[];
+};
+
+/* =======================
+   THUNKS
+======================= */
+
+export const fetchReports = createAsyncThunk<
+  Report[],
+  void,
+  { state: RootState }
+>("reports/fetchReports", async (_, { getState }) => {
+  const user = auth.currentUser;
+      if (!user) throw new Error("Not authenticated");
+
+      const token = await user.getIdToken();
+
   const response = await axios.get("http://localhost:3001/get_report", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  console.log(response.data)
+
   return response.data.message || [];
 });
 
-export const fetchPurchases = createAsyncThunk<void,{ state: RootState }>("reports/fetchPurchases", async (_, { getState }) => {
-  const token = getState().auth.token;
-  const response = await axios.get("http://localhost:3001/get_purchases", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-  return response.data.message || [];
-});
+export const fetchTimeReports = createAsyncThunk<
+  any[],
+  void,
+  { state: RootState }
+>("reports/fetchTimeReports", async (_, { getState }) => {
+  const user = auth.currentUser;
+      if (!user) throw new Error("Not authenticated");
 
-export const fetchTimeReports = createAsyncThunk<void,{ state: RootState }>("reports/fetchTimeReports", async (_, { getState }) => {
-  const token = getState().auth.token;
+      const token = await user.getIdToken();
+
   const response = await axios.get("http://localhost:3001/get_time_report", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    headers: { Authorization: `Bearer ${token}` },
+  });
+console.log(response.data)
   return response.data.message || [];
 });
+
+export const fetchPurchases = createAsyncThunk<
+  PurchasesResponse,
+  void,
+  { state: RootState }
+>("reports/fetchPurchases", async (_, { getState }) => {
+  const user = auth.currentUser;
+      if (!user) throw new Error("Not authenticated");
+
+      const token = await user.getIdToken();
+
+  const response = await axios.get("http://localhost:3001/get_purchases", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  console.log(response.data)
+  return response.data.data;
+});
+
+/* =======================
+   STATE
+======================= */
 
 interface ReportsState {
   reports: Report[];
-  timeReports: any[]; // 👉 if you know shape, replace `any` with type
+  timeReports: any[];
+  purchases: Purchase[];
+
   status: "idle" | "loading" | "failed";
   timeStatus: "idle" | "loading" | "failed";
+  purchaseStatus: "idle" | "loading" | "failed";
 }
 
 const initialState: ReportsState = {
   reports: [],
   timeReports: [],
+  purchases: [],
+
   status: "idle",
   timeStatus: "idle",
+  purchaseStatus: "idle",
 };
+
+/* =======================
+   SLICE
+======================= */
 
 const reportsSlice = createSlice({
   name: "reports",
   initialState,
   reducers: {},
   extraReducers: (builder) => {
-    // normal reports
+    /* -------- Reports -------- */
     builder
       .addCase(fetchReports.pending, (state) => {
         state.status = "loading";
@@ -74,7 +144,7 @@ const reportsSlice = createSlice({
         state.status = "failed";
       });
 
-    // time reports
+    /* -------- Time Reports -------- */
     builder
       .addCase(fetchTimeReports.pending, (state) => {
         state.timeStatus = "loading";
@@ -87,16 +157,25 @@ const reportsSlice = createSlice({
         state.timeStatus = "failed";
       });
 
-      builder
+    /* -------- Purchases -------- */
+    builder
       .addCase(fetchPurchases.pending, (state) => {
-        state.timeStatus = "loading";
+        state.purchaseStatus = "loading";
       })
-      .addCase(fetchPurchases.fulfilled, (state, action: PayloadAction<any[]>) => {
-        state.timeStatus = "idle";
-        state.timeReports = action.payload;
-      })
+      .addCase(
+        fetchPurchases.fulfilled,
+        (state, action: PayloadAction<PurchasesResponse>) => {
+          state.purchaseStatus = "idle";
+          console.log(action.payload)
+          console.log(action.payload.data)
+          state.purchases = [
+            ...state.purchases,
+            ...action.payload.data,
+          ];
+        }
+      )
       .addCase(fetchPurchases.rejected, (state) => {
-        state.timeStatus = "failed";
+        state.purchaseStatus = "failed";
       });
   },
 });

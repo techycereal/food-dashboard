@@ -1,3 +1,4 @@
+import textShadow from "tailwindcss-textshadow";
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
@@ -8,6 +9,10 @@ export default {
     extend: {
       fontFamily: {
         cabin: ['"Cabin Sketch"', 'cursive'],
+        sora: ["Sora", "sans-serif"],
+        hand: ['"Patrick Hand"', 'cursive'],
+        italianno: ["Italianno", "cursive"],
+        platypi: ["Platypi", "serif"],
       },
       keyframes: {
 fadeIn: {
@@ -25,5 +30,5 @@ fadeOut: 'fadeOut 1s ease-in-out',
 },
     },
   },
-  plugins: [],
+  plugins: [textShadow],
 }

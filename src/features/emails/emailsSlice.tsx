@@ -1,24 +1,52 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from "@reduxjs/toolkit";
 import axios from "axios";
+import { auth } from "../../lib/firebase";
 
-export const fetchEmails = createAsyncThunk("emails/fetchEmails", async (_, { getState }) => {
-  const token = getState().auth.token;
-  console.log(token)
-  const response = await axios.get("http://localhost:3001/get_emails", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-  console.log(response.data)
-  return response.data.emails || [];
-});
+export const fetchEmails = createAsyncThunk(
+  "emails/fetchEmails",
+  async (_, { rejectWithValue }) => {
+    try {
+      const user = auth.currentUser;
+      if (!user) throw new Error("Not authenticated");
+
+      const token = await user.getIdToken(); // 🔥 always fresh
+
+      const response = await axios.get("http://localhost:3001/get_emails", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      return response.data.emails || [];
+    } catch (err: any) {
+      return rejectWithValue(err.message);
+    }
+  }
+);
 
 export const addEmail = createAsyncThunk(
   "emails/addEmail",
-  async (email: string, { getState }) => {
-    const token = getState().auth.token;
-    const response = await axios.post("http://localhost:3001/add_email", { email }, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    return response.data.data; // updated emails array
+  async (email: string, { rejectWithValue }) => {
+    try {
+      const user = auth.currentUser;
+      if (!user) throw new Error("Not authenticated");
+
+      const token = await user.getIdToken(); // 🔥 always fresh
+
+      const response = await axios.post(
+        "http://localhost:3001/add_email",
+        { email },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      return response.data.data; // updated emails array
+    } catch (err: any) {
+      return rejectWithValue(err.message);
+    }
   }
 );
 

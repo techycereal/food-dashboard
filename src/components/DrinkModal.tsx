@@ -1,16 +1,30 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { X, PlusCircle } from "lucide-react";
 import axios from "axios";
-
+import { auth } from "../lib/firebase";
 type DrinkModal = {
-    setDrinkModal: React.Dispatch<React.SetStateAction<boolean>>;
+  setDrinkModal: React.Dispatch<React.SetStateAction<boolean>>;
+  setDrinks: React.Dispatch<React.SetStateAction<string[]>>;
+  drinks: string[];
 }
 
-export default function DrinkModal({setDrinkModal}: DrinkModal) {
-  const [drinks, setDrinks] = useState<string[]>([]);
-  const [newDrink, setNewDrink] = useState("");
+export default function DrinkModal({ setDrinkModal, drinks, setDrinks }: DrinkModal) {
 
+  const [newDrink, setNewDrink] = useState("");
+  const [isVisible, setIsVisible] = useState(false)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsVisible(true), 10); // small delay to trigger transition
+    return () => clearTimeout(timer);
+  }, []);
+
+
+
+  const handleClose = () => {
+    setIsVisible(false)
+    setTimeout(() => setDrinkModal(false), 300)
+  }
   const addDrink = () => {
     if (newDrink.trim() === "") return;
     if (drinks.includes(newDrink.trim())) return; // prevent duplicates
@@ -19,22 +33,48 @@ export default function DrinkModal({setDrinkModal}: DrinkModal) {
   };
 
   const onSubmit = async () => {
-    await axios.post('http://localhost:3001/add_drinks', {"drinks": drinks})
-    setDrinkModal(false)
-  }
+    // Always close modal immediately
+    handleClose();
+
+    // Include the newDrink if it's not empty
+    const allDrinks =
+      newDrink.trim() !== "" && !drinks.includes(newDrink.trim())
+        ? [...drinks, newDrink.trim()]
+        : drinks;
+
+    if (allDrinks.length === 0) return; // Nothing to send
+
+    try {
+      const user = auth.currentUser;
+      if (!user) throw new Error("Not authenticated");
+
+      const token = await user.getIdToken();
+      await axios.post(
+        "http://localhost:3001/add_drinks",
+        { drinks: allDrinks },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      // Update drinks state after API call
+      setDrinks(allDrinks);
+      setNewDrink(""); // clear input
+    } catch (err) {
+      console.error("Failed to save drinks:", err);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        className="relative bg-white rounded-2xl shadow-xl p-6 w-80 max-w-sm text-center"
+      <div
+        className={`relative bg-white rounded-2xl shadow-xl p-6 w-80 max-w-sm text-center transform transition-all duration-300 ease-out
+    ${isVisible
+            ? "translate-y-0 opacity-100"
+            : "-translate-y-20 opacity-0"}`}
       >
         {/* Close button */}
         <button
           className="absolute top-3 right-3 text-gray-500 hover:text-gray-700"
-          onClick={() => setDrinkModal(false)}
+          onClick={handleClose}
         >
           <X size={20} />
         </button>
@@ -79,12 +119,14 @@ export default function DrinkModal({setDrinkModal}: DrinkModal) {
         {/* Confirm button */}
         <motion.button
           whileTap={{ scale: 0.95 }}
-          className="mt-5 w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 rounded-lg shadow-md transition-colors"
+          disabled={drinks.length === 0 && newDrink.trim() === ""}
+          className="mt-5 w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 rounded-lg shadow-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={onSubmit}
         >
           Confirm
         </motion.button>
-      </motion.div>
+
+      </div>
     </div>
   );
 }

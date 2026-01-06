@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from "@reduxjs/toolkit";
 import axios from "axios";
 import type { RootState } from "../../app/store";
+import { auth } from "../../lib/firebase";
 //
 // TYPES
 //
@@ -45,7 +46,10 @@ export const fetchOffers = createAsyncThunk<
   void,
   { state: RootState }
 >("offers/fetchOffers", async (_, { getState }) => {
-  const token = getState().auth.token;
+  const user = auth.currentUser;
+      if (!user) throw new Error("Not authenticated");
+
+      const token = await user.getIdToken();
 
   const response = await axios.get("http://localhost:3001/get_offers", {
     headers: { Authorization: `Bearer ${token}` },
@@ -64,10 +68,14 @@ export const fetchOffers = createAsyncThunk<
 
 export const saveOffers = createAsyncThunk<
   Offers,
-  { deals: DealType; id: string },
+  { selectedDeals: DealType; id: string },
   { state: RootState }
->("offers/saveOffers", async ({ deals, id }, { getState }) => {
-  const token = getState().auth.token;
+>("offers/saveOffers", async ({ selectedDeals, id }, { getState }) => {
+  const deals = selectedDeals
+  const user = auth.currentUser;
+      if (!user) throw new Error("Not authenticated");
+
+      const token = await user.getIdToken();
 
   const response = await axios.post(
     "http://localhost:3001/add_offer",
@@ -95,22 +103,25 @@ const offersSlice = createSlice({
   initialState,
   reducers: {
     toggleDeal: (
-      state,
-      action: PayloadAction<{
-        name: string;
-        future: string | null;
-        show: number;
-      }>
-    ) => {
-      const { name, future, show } = action.payload;
+  state,
+  action: PayloadAction<{ name: string; future: string | null; show: number }>
+) => {
+  const { name, future, show } = action.payload;
 
-      // Toggle logic
-      if (state.selectedDeals.deals[name]) {
-        delete state.selectedDeals.deals[name];
-      } else {
-        state.selectedDeals.deals[name] = { name, future, show };
-      }
-    },
+  // Ensure deals object exists
+  if (!state.selectedDeals.deals) {
+    state.selectedDeals.deals = {};
+  }
+
+  if (state.selectedDeals.deals[name]) {
+    delete state.selectedDeals.deals[name];
+  } else {
+    console.log(name)
+    console.log(future)
+    console.log(show)
+    state.selectedDeals.deals[name] = { name, future, show };
+  }
+},
 
     setBusiness: (state, action: PayloadAction<string>) => {
       state.selectedDeals.business = action.payload;

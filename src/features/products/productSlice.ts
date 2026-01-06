@@ -1,48 +1,55 @@
 // app/productsSlice.ts
 import { createSlice, createAsyncThunk, type PayloadAction } from "@reduxjs/toolkit";
 import axios from "axios";
-import type { RootState } from "../../app/store"; // adjust import path
+import { auth } from "../../lib/firebase";
+
 export interface Item {
   id: string;
   item: string;
   price: number;
   fileUrl: string;
-  category: string; // <-- add this
+  category: string;
+  description: string;
   quantity: string;
 }
 
 interface ProductsState {
   items: Item[];
+  name: string;
   status: "idle" | "loading" | "failed";
 }
 
 const initialState: ProductsState = {
   items: [],
+  name: "",
   status: "idle",
 };
 
 // Fetch products only if items array is empty
-export const fetchProducts = createAsyncThunk<
-  Item[],
-  void,
-  { state: RootState }
->(
+export const fetchProducts = createAsyncThunk<Item[]>(
   "products/get_data",
-  async (_, { getState }) => {
-    const token = getState().auth.token; // ✅ use token from authSlice
-    console.log(token)
-    if (!token) throw new Error("No token available");
+  async (_, { rejectWithValue }) => {
+    try {
+      const user = auth.currentUser;
+      if (!user) throw new Error("Not authenticated");
 
-    const response = await axios.get("http://localhost:3001/get_data", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+      const token = await user.getIdToken(); // 🔥 always fresh
 
-    return response.data.data || [];
+      const response = await axios.get("http://localhost:3001/get_data", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      return response.data.data || [];
+    } catch (err: any) {
+      return rejectWithValue(err.message);
+    }
   },
   {
     condition: (_, { getState }) => {
-      const { products } = getState();
-      return products.items.length === 0; // skip if already cached
+      const state = getState() as { products: ProductsState };
+      return state.products.items.length === 0; // skip if already cached
     },
   }
 );
@@ -66,6 +73,9 @@ const productsSlice = createSlice({
     deleteProduct: (state, action: PayloadAction<string>) => {
       state.items = state.items.filter((item) => item.id !== action.payload);
     },
+    addName: (state, action: PayloadAction<string>) => {
+      state.name = action.payload;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -82,5 +92,11 @@ const productsSlice = createSlice({
   },
 });
 
-export const { addProduct, updateProduct, deleteProduct } = productsSlice.actions;
+export const {
+  addProduct,
+  updateProduct,
+  deleteProduct,
+  addName,
+} = productsSlice.actions;
+
 export default productsSlice.reducer;

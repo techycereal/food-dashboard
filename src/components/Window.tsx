@@ -1,95 +1,91 @@
 import axios from "axios";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import type { RootState, AppDispatch } from "../app/store";
+import type { RootState } from "../app/store";
 import { type Item } from "../features/products/productSlice";
 import confetti from "canvas-confetti";
-import WifiProvisioner from "./WifiProvision";
+import { FaTrashCan, FaWifi } from "react-icons/fa6";
+import { FaPencilAlt } from "react-icons/fa";
+import { FaPlus } from "react-icons/fa";
+import Chalk from '../../public/chalk.png'
+import { addName } from "../features/products/productSlice";
 
 interface WindowProps {
   handleEdit: (item: Item, index: number) => void;
   setSelectedItem: React.Dispatch<React.SetStateAction<Item | undefined>>;
+  openModal: () => void;
+  openWiFi: () => void;
 }
 
-export default function Window({ handleEdit, setSelectedItem }: WindowProps) {
-  const dispatch = useDispatch<AppDispatch>();
+const ITEMS_VISIBLE = 4;
+
+export default function Window({ handleEdit, setSelectedItem, openModal, openWiFi }: WindowProps) {
   const items = useSelector((state: RootState) => state.products.items);
   const status = useSelector((state: RootState) => state.products.status);
   const auth = useSelector((state: RootState) => state.auth.token);
-  console.log(auth)
-
-  const [pageSize, setPageSize] = useState(4);
-  const [page, setPage] = useState(0);
-  const [isSmallScreen, setIsSmallScreen] = useState(window.innerWidth < 768);
+  const cachedName = useSelector((state: RootState) => state.products.name)
+  const dispatch = useDispatch()
+  const loading = status === "loading";
   const [syncing, setSyncing] = useState(false);
   const [success, setSuccess] = useState(false);
-
-  const loading = status === "loading";
-
-  // ✅ Category state
-  const [selectedCategory, setSelectedCategory] = useState<string>("All");
-  const categories = ["All", ...new Set(items.map((item) => item.category))];
-
-  // Handle resize
+  const [categoryPage, setCategoryPage] = useState(0);
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
+  const [categoriesPerPage, setCategoriesPerPage] = useState(3);
+  const [businessName, setBusinessName] = useState(cachedName.length > 0 ? cachedName : '')
+  useEffect(() => {
+    const name = async () => {
+      const response = await axios.get('http://localhost:3001/get_name', { headers: { Authorization: `Bearer ${auth}` } })
+      setBusinessName(response.data.message)
+      dispatch(addName(response.data.message))
+    }
+    if (cachedName.length < 1) {
+      name()
+    }
+  }, [])
+  // Responsive categories per page
   useEffect(() => {
     const handleResize = () => {
-      setIsSmallScreen(window.innerWidth < 768);
-      if (window.innerWidth >= 1024) setPageSize(4);
-      else if (window.innerWidth >= 768) setPageSize(3);
-      else setPageSize(1000);
-      setPage(0);
+      if (window.innerWidth >= 1280) setCategoriesPerPage(3); // lg
+      else if (window.innerWidth >= 768) setCategoriesPerPage(2); // md
+      else setCategoriesPerPage(1); // sm
     };
+    handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  const categories = useMemo(() => [...new Set(items.map(item => item.category))], [items]);
+  const totalCategoryPages = Math.ceil(categories.length / categoriesPerPage);
+
+  const visibleCategories = categories.slice(
+    categoryPage * categoriesPerPage,
+    categoryPage * categoriesPerPage + categoriesPerPage
+  );
+
+  const itemsByCategory = useMemo(() => {
+    return categories.reduce<Record<string, Item[]>>((acc, category) => {
+      acc[category] = items.filter(item => item.category === category);
+      return acc;
+    }, {});
+  }, [categories, items]);
+
+  const toggleCategory = (category: string) => {
+    setExpandedCategories(prev => ({ ...prev, [category]: !prev[category] }));
+  };
 
   const itemClicked = (item: Item, index: number) => {
     handleEdit(item, index);
   };
 
-  // ✅ Step 1: Filter first
-  const categoryFiltered =
-    selectedCategory === "All"
-      ? items
-      : items.filter((item) => item.category === selectedCategory);
-
-  // ✅ Step 2: Total pages based on filtered set
-  const totalPages = Math.ceil(categoryFiltered.length / pageSize);
-
-  // ✅ Step 3: Clamp page if it’s out of range
-  useEffect(() => {
-    if (page >= totalPages) {
-      setPage(Math.max(totalPages - 1, 0));
-    }
-  }, [page, totalPages]);
-
-  // ✅ Step 4: Paginate after filtering
-  const paginatedItems = isSmallScreen
-    ? categoryFiltered
-    : categoryFiltered.slice(page * pageSize, (page + 1) * pageSize);
-
-  // Sync to backend
   const natsPush = async () => {
     try {
       setSyncing(true);
       setSuccess(false);
-
-      await axios.put("http://localhost:3001/natspush",{}, {
-  headers: { Authorization: `Bearer ${auth}` },
-});
-
-      // SUCCESS ANIMATION
+      await axios.put("http://localhost:3001/natspush", {}, { headers: { Authorization: `Bearer ${auth}` } });
       setSuccess(true);
-      confetti({
-        particleCount: 400,
-        spread: 400,
-        origin: { y: 0.5 },
-      });
-
-      setTimeout(() => {
-        setSuccess(false);
-      }, 3000);
+      confetti({ particleCount: 400, spread: 400, origin: { y: 0.5 } });
+      setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
       console.error("Push failed:", err);
     } finally {
@@ -97,100 +93,198 @@ export default function Window({ handleEdit, setSelectedItem }: WindowProps) {
     }
   };
 
+  const visibleCategoriesMobile = categories; // all categories
+  const visibleCategoriesToRender = categoriesPerPage > 1
+    ? visibleCategories // desktop: pagination
+    : visibleCategoriesMobile; // mobile: all categories
+
   return (
-    <div
-      className="flex flex-col items-center relative w-full 
-        max-w-[1400px] md:max-w-[95%] lg:max-w-[90%] 
-        min-h-[550px] sm:min-h-[600px] md:min-h-[650px] lg:min-h-[700px] 
-        max-h-[85vh] ml-0 md:ml-10"
-    >
-      {/* Category Toggle */}
-      <div className="flex gap-3 justify-center flex-wrap p-4">
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => {
-              setSelectedCategory(cat);
-              setPage(0); // reset pagination when switching categories
-            }}
-            className={`px-4 py-2 rounded-lg shadow font-bold transition ${
-              selectedCategory === cat
-                ? "bg-blue-600 text-white"
-                : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-            }`}
-          >
-            {cat}
-          </button>
-        ))}
-      </div>
+    <div className="flex flex-col items-center relative w-full max-w-[1000px] md:max-w-[85%] lg:max-w-[75%] min-h-[600px] sm:min-h-[650px] md:min-h-[700px] lg:min-h-[750px] max-h-[95vh] text-white font-sora figma-noise">
 
-      {/* Awning */}
-      <div className="relative w-full flex justify-between shadow-lg">
-        <div className="bg-[#4c4c4c] h-12 flex-1 shadow-xl rounded-sm" />
-      </div>
+      {/* WINDOW */}
+      <section
+        className="relative w-full flex flex-col flex-1 max-h-[85vh] overflow-hidden border-8 rounded-[2rem] shadow-[10px_10px_7.8px_0px_rgba(0,0,0,0.25)]"
+        style={{
+          borderColor: "#B89A7A",
+          backgroundImage: "linear-gradient(90deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.4) 100%), linear-gradient(99.8543deg, rgba(101, 101, 101, 1) 24.476%, rgb(0,0,0) 100%)",
+        }}
+      >
+        {/* Chalk image as watermark */}
+        <img
+          src={Chalk}
+          alt="chalk texture"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[52%] max-w-none opacity-[11%] pointer-events-none select-none z-0"
+        />
 
-      {/* Window */}
-      <section className="bg-white w-full rounded-sm shadow-xl flex flex-col flex-1 max-h-[75vh] overflow-y-auto">
+        {/* Desktop Add Item */}
+        <button
+          className="
+            px-6 py-3
+            flex items-center gap-2
+            font-bold text-white
+            bg-gradient-to-r from-[#706e6e] to-[#3e3e3e]
+            rounded-2xl
+            hover:opacity-95 hover:scale-105
+            transition-all duration-200
+            absolute top-4 right-4
+            cursor-pointer
+            hidden sm:flex
+            z-20
+          "
+          onClick={openModal}
+        >
+          <FaPlus size={20} />
+          <span>Add Item</span>
+        </button>
+
+        <button
+          className="
+            p-2
+            flex items-center gap-2
+            font-bold text-white
+            rounded-full
+            hover:opacity-95 hover:scale-105
+            transition-all duration-200
+            absolute top-4 left-4
+            cursor-pointer
+            z-20
+            bg-blue-400
+          "
+          onClick={openWiFi}
+        >
+          <FaWifi size={20} />
+        </button>
+
+        {/* Header */}
+        <div className="relative z-10 text-center py-12">
+          <h1 className="text-4xl md:text-5xl font-extrabold tracking-wide text-chalk-shadow">
+            {businessName}
+          </h1>
+        </div>
+
+        {/* Content */}
+        {/* Content */}
         {loading ? (
-          <div className="flex flex-1 justify-center items-center">
+          <div className="flex flex-1 justify-center items-center py-12">
             <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
           </div>
         ) : (
-          <div
-            className={`flex-1 w-full p-6 gap-6 sm:gap-8 md:gap-10 grid
-              ${
-                isSmallScreen
-                  ? "grid-cols-1"
-                  : "grid-cols-[repeat(auto-fit,minmax(320px,1fr))] sm:grid-cols-[repeat(auto-fit,minmax(300px,1fr))] md:grid-cols-[repeat(auto-fit,minmax(320px,1fr))] lg:grid-cols-[repeat(auto-fit,minmax(380px,1fr))]"
-              }
-              justify-items-center items-center
-            `}
-          >
-            {paginatedItems.map((item, index) => (
-              <div
-  key={index}
-  className="relative w-full max-w-[380px] h-96 rounded-lg shadow-lg overflow-hidden cursor-pointer hover:shadow-2xl transition-shadow"
-  style={{
-    backgroundImage: `url(${item.fileUrl})`,
-    backgroundSize: "cover",
-    backgroundPosition: "center",
-  }}
-  onClick={() => itemClicked(item, index)}
->
-  <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex flex-col justify-end p-5">
-    <h3 className="text-white font-bold text-xl">{item.item}</h3>
-    <p className="text-blue-400 font-semibold text-lg">${item.price}</p>
+          <div className={`flex flex-col flex-1 relative overflow-hidden md:pb-0`}>
+            <div
+              className={`
+    grid gap-8 p-6 overflow-y-auto flex-1
+    ${categoriesPerPage === 1 || visibleCategoriesToRender.length === 1 ? "grid-cols-1 justify-items-center" : ""}
+    ${visibleCategoriesToRender.length === 2 ? "md:grid-cols-2" : ""}
+    ${visibleCategoriesToRender.length >= 3 ? "lg:grid-cols-3" : ""}
+  `}
+            >
+              {visibleCategoriesToRender.map((category, idx) => {
+                const categoryItems = itemsByCategory[category] || [];
+                const isExpanded = expandedCategories[category];
+                const visibleItems = isExpanded
+                  ? categoryItems
+                  : categoryItems.slice(0, ITEMS_VISIBLE);
 
-    {/* ✅ Quantity display */}
-      <p className="text-md text-gray-200">
-  {item.quantity === "0"
-    ? "Out of Stock"
-    : item.quantity === ""
-    ? ""
-    : `Quantity: ${item.quantity}`}
-</p>
-  </div>
+                return (
+                  <div
+                    key={category}
+                    className={`
+          flex flex-col pr-4 
+          ${idx !== visibleCategories.length - 1 ? "md:border-r-2 md:border-white" : ""}
+          ${visibleCategoriesToRender.length === 1 ? "w-full max-w-[600px]" : "w-full"} 
+          md:max-h-[500px]
+        `}
+                  >
+                    <h2 className="text-3xl font-bold text-start mb-6 text-chalk-shadow flex-shrink-0">{category}</h2>
+                    <div className="flex flex-col gap-8 overflow-y-auto flex-1 pr-2 scrollable overflow-x-hidden">
+                      {visibleItems.map((item, index) => (
+                        <div
+                          key={index}
+                          onClick={() => itemClicked(item, index)}
+                          className="flex justify-between items-center cursor-pointer text-lg"
+                        >
+                          <div className="flex justify-between items-center gap-8 pb-2 border-b border-white flex-1">
+                            <span className="text-white">{item.item}</span>
+                            <span className="text-white">${item.price}</span>
+                          </div>
+                          <div className="flex items-center gap-4 pl-4 mb-3">
+                            <FaPencilAlt size={20} />
+                            <FaTrashCan
+                              size={20}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedItem(item);
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
 
-  <button
-    onClick={(e) => {
-      e.stopPropagation();
-      setSelectedItem(item);
-    }}
-    className="absolute top-2 right-2 bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 shadow-lg font-bold text-lg"
-  >
-    ✕
-  </button>
-</div>
-            ))}
+                    {categoryItems.length > ITEMS_VISIBLE && (
+                      <button
+                        onClick={() => toggleCategory(category)}
+                        className="mt-3 text-white font-bold hover:underline"
+                      >
+                        {isExpanded ? "See Less" : "See More"}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Mobile buttons at bottom of chalkboard */}
+            <div className="flex flex-col sm:hidden gap-2 px-6 pb-4">
+              <button
+                onClick={natsPush}
+                disabled={loading || syncing}
+                className={`w-full px-3 py-2 text-sm rounded-lg font-semibold transition
+      ${syncing ? "bg-purple-500 text-white animate-pulse" : ""}
+      ${success ? "bg-green-500 text-white" : ""}
+      ${!syncing && !success ? "bg-blue-600 text-white hover:bg-blue-700" : ""}
+    `}
+              >
+                {syncing ? "🚀 Launching…" : success ? "✅ Data Synced!" : "Sync Data"}
+              </button>
+              <button
+                onClick={openModal}
+                className="w-full px-3 py-2 text-sm bg-gray-700 text-white rounded-lg font-semibold hover:bg-gray-800 flex items-center justify-center gap-2"
+              >
+                <FaPlus size={14} />
+                Add Item
+              </button>
+            </div>
+
+            {/* Pagination Controls only if categoriesPerPage > 1 */}
+            {categoriesPerPage > 1 && totalCategoryPages > 1 && (
+              <div className="flex justify-center items-center mt-4 gap-4">
+                <button
+                  disabled={categoryPage === 0}
+                  onClick={() => setCategoryPage(prev => Math.max(prev - 1, 0))}
+                  className="px-4 py-2 bg-gray-700 text-white rounded disabled:opacity-50"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <span>{categoryPage + 1} / {totalCategoryPages}</span>
+                <button
+                  disabled={categoryPage === totalCategoryPages - 1}
+                  onClick={() => setCategoryPage(prev => Math.min(prev + 1, totalCategoryPages - 1))}
+                  className="px-4 py-2 bg-gray-700 text-white rounded disabled:opacity-50"
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </div>
+            )}
           </div>
         )}
       </section>
 
-      {/* Submit Button */}
+      {/* Desktop Sync Data Button */}
       <button
         onClick={natsPush}
         disabled={loading || syncing}
-        className={`absolute bottom-6 right-6 px-6 py-3 rounded-lg shadow-lg font-bold transition 
+        className={`absolute bottom-6 right-6 px-6 py-3 rounded-lg font-bold transition hidden sm:block
           ${syncing ? "bg-purple-500 text-white animate-pulse" : ""}
           ${success ? "bg-green-500 text-white" : ""}
           ${!syncing && !success ? "bg-blue-600 text-white hover:bg-blue-700" : ""}
@@ -198,33 +292,6 @@ export default function Window({ handleEdit, setSelectedItem }: WindowProps) {
       >
         {syncing ? "🚀 Launching…" : success ? "✅ Data Synced!" : "Sync Data"}
       </button>
-      <WifiProvisioner/>
-
-      {/* Bottom Ledge */}
-      <div className="bg-[#4c4c4c] h-5 w-full shadow-xl rounded-sm" />
-
-      {/* Pagination */}
-      {!isSmallScreen && !loading && totalPages > 1 && (
-        <div className="hidden md:flex items-center justify-center gap-4 py-4 mt-4">
-          <button
-            onClick={() => setPage((p) => Math.max(p - 1, 0))}
-            disabled={page === 0}
-            className="p-2 bg-gray-200 rounded-full disabled:opacity-40"
-          >
-            <ChevronLeft />
-          </button>
-          <span className="text-sm text-gray-600">
-            Page {page + 1} of {totalPages}
-          </span>
-          <button
-            onClick={() => setPage((p) => Math.min(p + 1, totalPages - 1))}
-            disabled={page === totalPages - 1}
-            className="p-2 bg-gray-200 rounded-full disabled:opacity-40"
-          >
-            <ChevronRight />
-          </button>
-        </div>
-      )}
     </div>
   );
 }

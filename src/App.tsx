@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Menu } from "lucide-react";
-import HangingSign from "./components/HangingSign";
 import Window from "./components/Window";
 import Modal from "./components/Modal";
 import axios from "axios";
@@ -12,6 +11,7 @@ import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { setCredentials, clearAuth } from "./features/auth/authSlice";
 import { fetchProducts, deleteProduct } from "./features/products/productSlice";
 import type { AppDispatch } from "./app/store";
+import WifiProvisionerModal from "./components/WifiProvision";
 
 interface Item {
   fileUrl: string;
@@ -25,7 +25,6 @@ export default function App() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [items, setItems] = useState<Item[]>([]);
   const [editItem, setEditItem] = useState<Item | undefined>();
   const [editIndex, setEditIndex] = useState<number>();
   const [selectedItem, setSelectedItem] = useState<Item>();
@@ -34,7 +33,7 @@ export default function App() {
   const navigate = useNavigate();
   const { user } = useSelector((state: any) => state.auth);
   const auth = useSelector((state: any) => state.auth.token)
-
+  const [isOpen, setIsOpen] = useState(false);
   useEffect(() => {
     const auth = getAuth();
 
@@ -75,6 +74,7 @@ export default function App() {
   if (!user) return null;
 
   const handleEdit = (item: Item, index: number) => {
+    console.log(item)
     setEditItem(item);
     setEditIndex(index);
     setIsModalOpen(true);
@@ -95,7 +95,7 @@ export default function App() {
   };
 
   return (
-    <div className="h-screen w-full bg-[#b8f2f1] relative overflow-hidden">
+    <div className="h-screen w-full bg-[#b8f2f1] relative overflow-hidden" style={{ backgroundImage: "linear-gradient(90deg, rgba(184, 154, 122, 0) 0%, rgba(184, 154, 122, 0) 100%), linear-gradient(134.583deg, rgba(214, 242, 244, 0) 48.915%, rgb(167, 216, 255) 93.019%), linear-gradient(137.884deg, rgba(222, 242, 243, 1) 0%, rgb(214, 242, 244) 50.018%)" }}>
       <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
 
       {!mobileOpen && (
@@ -112,13 +112,14 @@ export default function App() {
       <main
         className={`w-full min-h-screen flex flex-col items-center justify-center p-6 md:p-8 relative md:${sidebarWidth}`}
       >
-        <Window handleEdit={handleEdit} setSelectedItem={setSelectedItem} />
+        <Window handleEdit={handleEdit} setSelectedItem={setSelectedItem} openModal={() => setIsModalOpen(true)} openWiFi={() => setIsOpen(true)} />
 
-        <HangingSign onClick={() => setIsModalOpen(true)} />
         <div className="flex flex-col items-center justify-center">
+          {isOpen && (
+            <WifiProvisionerModal closeModal={() => setIsOpen(false)} />
+          )}
           {isModalOpen && (
             <Modal
-              setItems={setItems}
               onClose={onClose}
               isOpen={isModalOpen}
               itemToEdit={editItem}
