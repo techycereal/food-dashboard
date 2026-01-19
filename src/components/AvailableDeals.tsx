@@ -8,6 +8,7 @@ type ComponentProps = {
     deals: DealType;
 };
 
+
 export default function AvailableDeals({ deals }: ComponentProps) {
     const dispatch = useDispatch();
 
@@ -69,8 +70,8 @@ export default function AvailableDeals({ deals }: ComponentProps) {
 
                 <div
                     className={`min-h-[8rem] ${availableDeals.length > 0
-                            ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 justify-items-center gap-x-6 gap-y-10"
-                            : "flex justify-center items-start"
+                        ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 justify-items-center gap-x-6 gap-y-10"
+                        : "flex justify-center items-start"
                         }`}
                 >
                     {availableDeals.length > 0 ? (

@@ -2,15 +2,15 @@ import axios from "axios";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import type { RootState } from "../app/store";
+import type { RootState, AppDispatch } from "../app/store";
 import { type Item } from "../features/products/productSlice";
 import confetti from "canvas-confetti";
 import { FaTrashCan, FaWifi } from "react-icons/fa6";
 import { FaPencilAlt } from "react-icons/fa";
 import { FaPlus } from "react-icons/fa";
 import Chalk from '../../public/chalk.png'
-import { addName } from "../features/products/productSlice";
-
+import { addName, changeTutorialStatusAsync } from "../features/products/productSlice";
+import { TutorialBubble } from "./TutorialBubble";
 interface WindowProps {
   handleEdit: (item: Item, index: number) => void;
   setSelectedItem: React.Dispatch<React.SetStateAction<Item | undefined>>;
@@ -20,12 +20,24 @@ interface WindowProps {
 
 const ITEMS_VISIBLE = 4;
 
+const TUTORIAL_STEPS = [
+  "wifi",
+  "add-item",
+  "edit-item",
+  "delete-item",
+  "sync-data",
+] as const;
+
+type TutorialStep = (typeof TUTORIAL_STEPS)[number];
+
 export default function Window({ handleEdit, setSelectedItem, openModal, openWiFi }: WindowProps) {
   const items = useSelector((state: RootState) => state.products.items);
   const status = useSelector((state: RootState) => state.products.status);
   const auth = useSelector((state: RootState) => state.auth.token);
   const cachedName = useSelector((state: RootState) => state.products.name)
-  const dispatch = useDispatch()
+  const tutorial = useSelector((state: RootState) => state.products.tutorial)
+  let showTutorial = tutorial['window'] === true;
+  const dispatch = useDispatch<AppDispatch>()
   const loading = status === "loading";
   const [syncing, setSyncing] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -33,6 +45,29 @@ export default function Window({ handleEdit, setSelectedItem, openModal, openWiF
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
   const [categoriesPerPage, setCategoriesPerPage] = useState(3);
   const [businessName, setBusinessName] = useState(cachedName.length > 0 ? cachedName : '')
+  const [tutorialStepIndex, setTutorialStepIndex] = useState(0);
+
+  const currentStep: TutorialStep | null =
+    showTutorial ? TUTORIAL_STEPS[tutorialStepIndex] : null;
+
+  const isStep = (step: TutorialStep) => currentStep === step;
+
+  const nextStep = () => {
+    setTutorialStepIndex((i) =>
+      Math.min(i + 1, TUTORIAL_STEPS.length - 1)
+    );
+  };
+
+  const prevStep = () => {
+    setTutorialStepIndex((i) => Math.max(i - 1, 0));
+  };
+
+  const finishTutorial = () => {
+    // later: dispatch(updateTutorial({ window: false }))
+    dispatch(changeTutorialStatusAsync('window'))
+    setTutorialStepIndex(0);
+  };
+
   useEffect(() => {
     const name = async () => {
       const response = await axios.get('http://localhost:3001/get_name', { headers: { Authorization: `Bearer ${auth}` } })
@@ -57,6 +92,7 @@ export default function Window({ handleEdit, setSelectedItem, openModal, openWiF
 
   const categories = useMemo(() => [...new Set(items.map(item => item.category))], [items]);
   const totalCategoryPages = Math.ceil(categories.length / categoriesPerPage);
+  const hasItems = items.length > 0 ? true : false
 
   const visibleCategories = categories.slice(
     categoryPage * categoriesPerPage,
@@ -117,43 +153,61 @@ export default function Window({ handleEdit, setSelectedItem, openModal, openWiF
         />
 
         {/* Desktop Add Item */}
-        <button
-          className="
-            px-6 py-3
-            flex items-center gap-2
-            font-bold text-white
-            bg-gradient-to-r from-[#706e6e] to-[#3e3e3e]
-            rounded-2xl
-            hover:opacity-95 hover:scale-105
-            transition-all duration-200
-            absolute top-4 right-4
-            cursor-pointer
-            hidden sm:flex
-            z-20
-          "
-          onClick={openModal}
-        >
-          <FaPlus size={20} />
-          <span>Add Item</span>
-        </button>
+        <div className="absolute top-4 right-4 z-20 hidden sm:flex">
+          <TutorialBubble
+            show={isStep("add-item")}
+            text="Add a new menu item to your board."
+            position="bottom-right"
+            onBack={prevStep}
+            onNext={nextStep}
+            condition={items.length > 0}
+          >
+            <button
+              onClick={openModal}
+              className="
+        px-6 py-3
+        flex items-center gap-2
+        font-bold text-white
+        bg-gradient-to-r from-[#706e6e] to-[#3e3e3e]
+        rounded-2xl
+        hover:opacity-95 hover:scale-105
+        transition-all duration-200
+        cursor-pointer
+      "
+            >
+              <FaPlus size={20} />
+              <span>Add Item</span>
+            </button>
+          </TutorialBubble>
+        </div>
 
-        <button
-          className="
-            p-2
-            flex items-center gap-2
-            font-bold text-white
-            rounded-full
-            hover:opacity-95 hover:scale-105
-            transition-all duration-200
-            absolute top-4 left-4
-            cursor-pointer
-            z-20
-            bg-blue-400
-          "
-          onClick={openWiFi}
-        >
-          <FaWifi size={20} />
-        </button>
+        <div className="absolute top-4 left-4 z-20">
+          <div className="absolute top-4 left-4 z-20">
+            <TutorialBubble
+              show={isStep("wifi")}
+              text="Open Wi-Fi settings or view connection info."
+              position="right"
+              onNext={nextStep}
+              condition
+            >
+              <button
+                onClick={openWiFi}
+                className="
+        p-2
+        flex items-center gap-2
+        font-bold text-white
+        rounded-full
+        hover:opacity-95 hover:scale-105
+        transition-all duration-200
+        cursor-pointer
+        bg-blue-400
+      "
+              >
+                <FaWifi size={20} />
+              </button>
+            </TutorialBubble>
+          </div>
+        </div>
 
         {/* Header */}
         <div className="relative z-10 text-center py-12">
@@ -170,90 +224,144 @@ export default function Window({ handleEdit, setSelectedItem, openModal, openWiF
           </div>
         ) : (
           <div className={`flex flex-col flex-1 relative overflow-hidden md:pb-0`}>
-            <div
-              className={`
+            {hasItems ? (
+              <>
+                <div
+                  className={`
     grid gap-8 p-6 overflow-y-auto flex-1
     ${categoriesPerPage === 1 || visibleCategoriesToRender.length === 1 ? "grid-cols-1 justify-items-center" : ""}
     ${visibleCategoriesToRender.length === 2 ? "md:grid-cols-2" : ""}
     ${visibleCategoriesToRender.length >= 3 ? "lg:grid-cols-3" : ""}
   `}
-            >
-              {visibleCategoriesToRender.map((category, idx) => {
-                const categoryItems = itemsByCategory[category] || [];
-                const isExpanded = expandedCategories[category];
-                const visibleItems = isExpanded
-                  ? categoryItems
-                  : categoryItems.slice(0, ITEMS_VISIBLE);
+                >
+                  {visibleCategoriesToRender.map((category, idx) => {
+                    const categoryItems = itemsByCategory[category] || [];
+                    const isExpanded = expandedCategories[category];
+                    const visibleItems = isExpanded
+                      ? categoryItems
+                      : categoryItems.slice(0, ITEMS_VISIBLE);
+                    const isFirstCategory = idx === 0;
 
-                return (
-                  <div
-                    key={category}
-                    className={`
+                    return (
+                      <div
+                        key={category}
+                        className={`
           flex flex-col pr-4 
           ${idx !== visibleCategories.length - 1 ? "md:border-r-2 md:border-white" : ""}
           ${visibleCategoriesToRender.length === 1 ? "w-full max-w-[600px]" : "w-full"} 
           md:max-h-[500px]
         `}
-                  >
-                    <h2 className="text-3xl font-bold text-start mb-6 text-chalk-shadow flex-shrink-0">{category}</h2>
-                    <div className="flex flex-col gap-8 overflow-y-auto flex-1 pr-2 scrollable overflow-x-hidden">
-                      {visibleItems.map((item, index) => (
-                        <div
-                          key={index}
-                          onClick={() => itemClicked(item, index)}
-                          className="flex justify-between items-center cursor-pointer text-lg"
-                        >
-                          <div className="flex justify-between items-center gap-8 pb-2 border-b border-white flex-1">
-                            <span className="text-white">{item.item}</span>
-                            <span className="text-white">${item.price}</span>
-                          </div>
-                          <div className="flex items-center gap-4 pl-4 mb-3">
-                            <FaPencilAlt size={20} />
-                            <FaTrashCan
-                              size={20}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedItem(item);
-                              }}
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {categoryItems.length > ITEMS_VISIBLE && (
-                      <button
-                        onClick={() => toggleCategory(category)}
-                        className="mt-3 text-white font-bold hover:underline"
                       >
-                        {isExpanded ? "See Less" : "See More"}
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                        <h2 className="text-3xl font-bold text-start mb-6 text-chalk-shadow flex-shrink-0">{category}</h2>
+                        <div className="flex flex-col gap-8 overflow-y-auto flex-1 pr-2 scrollable overflow-x-hidden">
+                          {visibleItems.map((item, index) => {
+                            const isFirstItem = isFirstCategory && index === 0;
+                            return (
+                              <div
+                                key={index}
+                                className="flex justify-between items-center cursor-pointer text-lg"
+                              >
+                                <div className="flex justify-between items-center gap-8 pb-2 border-b border-white flex-1">
+                                  <span className="text-white">{item.item}</span>
+                                  <span className="text-white">${item.price}</span>
+                                </div>
+                                <div className="flex items-center gap-4 pl-4 mb-3">
+                                  {isFirstItem && isStep("edit-item") ? (
+                                    <TutorialBubble
+                                      show
+                                      text={
+                                        <>
+                                          Edit an existing <br /> menu  item
+                                        </>
+                                      }
+                                      position="bottom-right"
+                                      onBack={prevStep}
+                                      onNext={nextStep}
+                                      condition
+                                    >
+                                      <FaPencilAlt size={20} onClick={() => itemClicked(item, index)} />
+                                    </TutorialBubble>
+                                  ) : (
+                                    <FaPencilAlt size={20} onClick={() => itemClicked(item, index)} />
+                                  )}
+                                  {isFirstItem && isStep("delete-item") ? (
+                                    <TutorialBubble
+                                      show
+                                      text="Delete an item from your menu."
+                                      position="bottom-right"
+                                      onBack={prevStep}
+                                      onNext={nextStep}
+                                      condition
+                                    >
+                                      <FaTrashCan size={20} onClick={() => setSelectedItem(item)} />
+                                    </TutorialBubble>
+                                  ) : (
+                                    <FaTrashCan size={20} onClick={() => setSelectedItem(item)} />
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+
+                        {categoryItems.length > ITEMS_VISIBLE && (
+                          <button
+                            onClick={() => toggleCategory(category)}
+                            className="mt-3 text-white font-bold hover:underline"
+                          >
+                            {isExpanded ? "See Less" : "See More"}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <p className="text-center">No Items. Click "Add Item" to Create New Items</p>
+            )}
+
 
             {/* Mobile buttons at bottom of chalkboard */}
             <div className="flex flex-col sm:hidden gap-2 px-6 pb-4">
-              <button
-                onClick={natsPush}
-                disabled={loading || syncing}
-                className={`w-full px-3 py-2 text-sm rounded-lg font-semibold transition
+              <TutorialBubble
+                show={isStep("sync-data")}
+                text="Push your menu live."
+                position="top"
+                onBack={prevStep}
+                onDone={finishTutorial}
+                isLast
+                condition
+              >
+                <button
+                  onClick={natsPush}
+                  disabled={loading || syncing}
+                  className={`w-full px-3 py-2 text-sm rounded-lg font-semibold transition
       ${syncing ? "bg-purple-500 text-white animate-pulse" : ""}
       ${success ? "bg-green-500 text-white" : ""}
       ${!syncing && !success ? "bg-blue-600 text-white hover:bg-blue-700" : ""}
     `}
+                >
+                  {syncing ? "🚀 Launching…" : success ? "✅ Data Synced!" : "Sync Data"}
+                </button>
+              </TutorialBubble>
+              <TutorialBubble
+                show={isStep("add-item")}
+                text="Add a New Menu Item To The Board (Required for The Next Step)"
+                position="top"
+                onBack={prevStep}
+                onNext={nextStep}
+                condition={items.length > 0}
+                isLast
               >
-                {syncing ? "🚀 Launching…" : success ? "✅ Data Synced!" : "Sync Data"}
-              </button>
-              <button
-                onClick={openModal}
-                className="w-full px-3 py-2 text-sm bg-gray-700 text-white rounded-lg font-semibold hover:bg-gray-800 flex items-center justify-center gap-2"
-              >
-                <FaPlus size={14} />
-                Add Item
-              </button>
+                <button
+                  onClick={openModal}
+                  className="w-full px-3 py-2 text-sm bg-gray-700 text-white rounded-lg font-semibold hover:bg-gray-800 flex items-center justify-center gap-2"
+                >
+                  <FaPlus size={14} />
+                  Add Item
+                </button>
+              </TutorialBubble>
             </div>
 
             {/* Pagination Controls only if categoriesPerPage > 1 */}
@@ -281,17 +389,30 @@ export default function Window({ handleEdit, setSelectedItem, openModal, openWiF
       </section>
 
       {/* Desktop Sync Data Button */}
-      <button
-        onClick={natsPush}
-        disabled={loading || syncing}
-        className={`absolute bottom-6 right-6 px-6 py-3 rounded-lg font-bold transition hidden sm:block
-          ${syncing ? "bg-purple-500 text-white animate-pulse" : ""}
-          ${success ? "bg-green-500 text-white" : ""}
-          ${!syncing && !success ? "bg-blue-600 text-white hover:bg-blue-700" : ""}
-        `}
-      >
-        {syncing ? "🚀 Launching…" : success ? "✅ Data Synced!" : "Sync Data"}
-      </button>
+      <div className="absolute bottom-6 right-6">
+        <TutorialBubble
+          show={isStep("sync-data")}
+          text="Push your menu live."
+          position="top"
+          onBack={prevStep}
+          onDone={finishTutorial}
+          isLast
+          condition
+        >
+          <button
+            onClick={natsPush}
+            disabled={loading || syncing}
+            className={`px-6 py-3 rounded-lg font-bold transition hidden sm:block
+        ${syncing ? "bg-purple-500 text-white animate-pulse" : ""}
+        ${success ? "bg-green-500 text-white" : ""}
+        ${!syncing && !success ? "bg-blue-600 text-white hover:bg-blue-700" : ""}
+      `}
+          >
+            {syncing ? "🚀 Launching…" : success ? "✅ Data Synced!" : "Sync Data"}
+          </button>
+        </TutorialBubble>
+      </div>
+
     </div>
   );
 }

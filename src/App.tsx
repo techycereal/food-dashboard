@@ -9,26 +9,16 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { setCredentials, clearAuth } from "./features/auth/authSlice";
-import { fetchProducts, deleteProduct } from "./features/products/productSlice";
+import { fetchProducts, deleteProduct, fetchTutorial, type Item } from "./features/products/productSlice";
 import type { AppDispatch } from "./app/store";
 import WifiProvisionerModal from "./components/WifiProvision";
 
-interface Item {
-  fileUrl: string;
-  item: string;
-  price: number;
-  id: string;
-  quantity: string;
-}
-
 export default function App() {
-  const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editItem, setEditItem] = useState<Item | undefined>();
   const [editIndex, setEditIndex] = useState<number>();
   const [selectedItem, setSelectedItem] = useState<Item>();
-  const sidebarWidth = collapsed ? "ml-16" : "ml-48";
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const { user } = useSelector((state: any) => state.auth);
@@ -51,6 +41,8 @@ export default function App() {
             token,
           })
         );
+        console.log('test')
+        dispatch(fetchTutorial())
         dispatch(fetchProducts());
       } else {
         dispatch(clearAuth());
@@ -110,7 +102,7 @@ export default function App() {
       )}
 
       <main
-        className={`w-full min-h-screen flex flex-col items-center justify-center p-6 md:p-8 relative md:${sidebarWidth}`}
+        className={`w-full min-h-screen flex flex-col items-center justify-center p-6 md:p-8 relative md:ml-16`}
       >
         <Window handleEdit={handleEdit} setSelectedItem={setSelectedItem} openModal={() => setIsModalOpen(true)} openWiFi={() => setIsOpen(true)} />
 

@@ -1,11 +1,6 @@
 import type { FC } from "react";
 import { useState, useEffect } from "react";
-interface Item {
-  fileUrl: string;
-  item: string;
-  price: number;
-  id: string;
-}
+import type { Item } from "../features/products/productSlice";
 
 interface DeleteModalProps {
   onClose: () => void;

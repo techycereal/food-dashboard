@@ -17,16 +17,18 @@ import EmailBoard from "../components/EmailBoard";
 import MobileBoard from "../components/MobileBoard";
 import Chart from "../components/Chart";
 import { FaClipboardList } from "react-icons/fa";
-
+import { TutorialBubble } from "../components/TutorialBubble";
+import { changeTutorialStatusAsync } from "../features/products/productSlice";
 export type Period = "Daily" | "Weekly" | "Monthly" | "Yearly";
 
 export default function ReportsDashboard() {
   // ---------------- STATE ----------------
   const dispatch = useDispatch();
   const navigate = useNavigate();
-
+  const [tutorialStep, setTutorialStep] = useState(0);
   const [period, setPeriod] = useState<Period>("Daily");
   const [mobileOpen, setMobileOpen] = useState(false);
+  const tutorial = useSelector((state: RootState) => state.products.tutorial);
 
   const { user } = useSelector((state: RootState) => state.auth);
   const { reports, timeReports, status, timeStatus } = useSelector(
@@ -95,7 +97,7 @@ export default function ReportsDashboard() {
       })),
     [filteredPeriods]
   );
-
+  console.log(chartData)
   const bestSeller = useMemo(() => {
     const tally: Record<string, number> = {};
 
@@ -166,10 +168,18 @@ export default function ReportsDashboard() {
         </button>
       )}
 
-      <ReportBoard
-        currentSummary={currentSummary}
-        bestSeller={bestSeller}
-      />
+      <TutorialBubble
+        show={tutorialStep === 0 && tutorial.reports === true}
+        text="This overview shows your total revenue, orders, and best sellers."
+        position="bottom"
+        onNext={() => setTutorialStep(1)}
+        condition
+      >
+        <ReportBoard
+          currentSummary={currentSummary}
+          bestSeller={bestSeller}
+        />
+      </TutorialBubble>
 
       <button
         className="bg-blue-400 px-3 py-3 rounded-full text-white fixed top-4 right-4 z-50"
@@ -182,51 +192,80 @@ export default function ReportsDashboard() {
         <FaClipboardList size={24} />
       </button>
 
-      <Chart
-        period={period}
-        setPeriod={setPeriod}
-        chartData={chartData}
-      />
+      <TutorialBubble
+        show={tutorialStep === 1 && tutorial.reports === true}
+        text={`Use this chart to switch between Daily, Weekly,\nMonthly, and Yearly performance.`}
+        position="top"
+        onBack={() => setTutorialStep(0)}
+        onNext={() => setTutorialStep(2)}
+        condition
+      >
+        <Chart
+          period={period}
+          setPeriod={setPeriod}
+          chartData={chartData}
+        />
+      </TutorialBubble>
+      <TutorialBubble
+        show={tutorialStep === 2 && tutorial.reports === true}
+        text="Here you can review individual transactions and customer purchases."
+        position="top"
+        onBack={() => setTutorialStep(1)}
+        onDone={() => {
+          dispatch(changeTutorialStatusAsync('reports') as any);
+          setTutorialStep(3);
+        }}
+        isLast
+        condition
+      >
+        <EmailBoard>
 
-      <EmailBoard>
-        <div className="font-hand h-full overflow-y-auto ml-4">
-          <h2 className="text-center font-bold text-3xl mb-4">Transaction Report</h2>
-          <table className="overflow-y min-w-full text-xs sm:text-sm md:text-base">
-            <thead className="z-10">
-              <tr>
-                <th className="p-2 text-left whitespace-nowrap">Customer</th>
-                <th className="p-2 text-left">Items</th>
-                <th className="p-2 text-left whitespace-nowrap">Total Price</th>
-                <th className="p-2 text-left whitespace-nowrap">Date</th>
-              </tr>
-            </thead>
+          <div className="font-hand h-full overflow-y-auto ml-4">
 
-            <tbody>
-              {reports.map((report) => (
-                <tr key={report.id} className="hover:bg-gray-50 border-t">
-                  <td className="p-2">{report.email || 'No Email'}</td>
 
-                  <td className="p-2">
-                    <ul className="list-disc ml-4 space-y-1">
-                      {report.items.map((obj, idx) => (
-                        <p key={idx}>{obj.item} (x{obj.quantity})</p>
-                      ))}
-                    </ul>
-                  </td>
+            <h2 className="text-center font-bold text-3xl mb-4">Transaction Report</h2>
+            {reports.length > 0 ? (
+              <table className="overflow-y min-w-full text-xs sm:text-sm md:text-base">
+                <thead className="z-10">
+                  <tr>
+                    <th className="p-2 text-left whitespace-nowrap">Customer</th>
+                    <th className="p-2 text-left">Items</th>
+                    <th className="p-2 text-left whitespace-nowrap">Total Price</th>
+                    <th className="p-2 text-left whitespace-nowrap">Date</th>
+                  </tr>
+                </thead>
 
-                  <td className="p-2 whitespace-nowrap">
-                    ${(report.totalPrice).toFixed(2)}
-                  </td>
+                <tbody>
+                  {reports.map((report) => (
+                    <tr key={report.id} className="hover:bg-gray-50 border-t">
+                      <td className="p-2">{report.email || 'No Email'}</td>
 
-                  <td className="p-2 whitespace-nowrap">
-                    {new Date(report._ts * 1000).toLocaleString()}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </EmailBoard>
+                      <td className="p-2">
+                        <ul className="list-disc ml-4 space-y-1">
+                          {report.items.map((obj, idx) => (
+                            <p key={idx}>{obj.item} (x{obj.quantity})</p>
+                          ))}
+                        </ul>
+                      </td>
+
+                      <td className="p-2 whitespace-nowrap">
+                        ${(report.totalPrice).toFixed(2)}
+                      </td>
+
+                      <td className="p-2 whitespace-nowrap">
+                        {new Date(report._ts * 1000).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p className="text-center text-lg">No Transactions</p>
+            )}
+
+          </div>
+        </EmailBoard>
+      </TutorialBubble>
 
       <MobileBoard>
         <div className="overflow-y-auto font-hand">

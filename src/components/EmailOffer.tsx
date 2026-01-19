@@ -25,13 +25,13 @@ export default function EmailOffer() {
             ) : emails.length === 0 ? (
                 <p className="text-gray-500 text-center">No emails fetched yet.</p>
             ) : (
-                <ul className="space-y-2">
+                <ul className="space-y-2 md:ml-4">
                     {emails.map((email, index) => (
                         <li
                             key={index}
                             className="px-4 py-2 bg-gray-50 rounded-lg border border-gray-200 text-gray-700 shadow-sm"
                         >
-                            {email}
+                            {email.email}
                         </li>
                     ))}
                 </ul>

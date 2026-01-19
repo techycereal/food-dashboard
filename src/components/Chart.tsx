@@ -36,17 +36,21 @@ export default function Chart({ setPeriod, period, chartData }: ChartComponent) 
                             </button>
                         ))}
                     </div>
+                    {chartData.length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={chartData}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="period" />
+                                <YAxis />
+                                <Tooltip />
+                                <Line type="monotone" dataKey="revenue" stroke="#8884d8" />
+                                <Line type="monotone" dataKey="orders" stroke="#82ca9d" />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    ) : (
+                        <p>No Report Data</p>
+                    )}
 
-                    <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={chartData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="period" />
-                            <YAxis />
-                            <Tooltip />
-                            <Line type="monotone" dataKey="revenue" stroke="#8884d8" />
-                            <Line type="monotone" dataKey="orders" stroke="#82ca9d" />
-                        </LineChart>
-                    </ResponsiveContainer>
                 </div>
             </div>
         </div>

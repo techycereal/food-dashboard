@@ -16,6 +16,9 @@ import AvailableDeals from "../components/AvailableDeals";
 import SelectedDeals from "../components/SelectedDeals";
 import EmailOffer from "../components/EmailOffer";
 import axios from "axios";
+import { Loader2 } from "lucide-react";
+import { TutorialBubble } from "../components/TutorialBubble"; // make sure to import
+import { changeTutorialStatusAsync } from "../features/products/productSlice";
 export type DealType = Record<string, { name: string; future: string | null; show: number }>;
 
 export default function Offers() {
@@ -30,15 +33,15 @@ export default function Offers() {
   const selectedDeals = useSelector(
     (state: RootState) => state.offers.selectedDeals.deals
   );
-  console.log(selectedDeals)
   // --- Redux State ---
   const emails = useSelector((state: RootState) => state.emails.emails);
-  const emailStatus = useSelector((state: RootState) => state.emails.status);
   const offers = useSelector((state: RootState) => state.offers.selectedDeals.deals);
   const offerId = useSelector((state: RootState) => state.offers.selectedDeals.id);
   const offerStatus = useSelector((state: RootState) => state.offers.status);
-  const { user } = useSelector((state: RootState) => state.auth);
   const [drinks, setDrinks] = useState<string[]>([]);
+  const status = useSelector((state: RootState) => state.offers.status);
+  const tutorial = useSelector((state: RootState) => state.products.tutorial)
+  const [tutorialStep, setTutorialStep] = useState(0); // ✅ add tutorial step
   // --- Sample Deals ---
   const deals: DealType = {
     "Free drink with any meal": { name: "Free drink with any meal", future: null, show: 1 },
@@ -105,13 +108,26 @@ export default function Offers() {
     getDrinks()
   }, []);
 
-  // --- Loading State ---
-  if (!user) {
+
+  console.log(status)
+  if (status == 'loading') {
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-[#b8f2f1]">
-        <p className="text-lg font-semibold">Loading...</p>
+      <div
+        className="h-screen w-full flex bg-[#b8f2f1] overflow-y-auto pb-10"
+        style={{
+          backgroundImage:
+            "linear-gradient(90deg, rgba(184,154,122,0) 0%, rgba(184,154,122,0) 100%), " +
+            "linear-gradient(134.583deg, rgba(214,242,244,0) 48.915%, rgb(167,216,255) 93.019%), " +
+            "linear-gradient(137.884deg, rgba(222,242,243,1) 0%, rgb(214,242,244) 50.018%)",
+        }}
+      >
+        <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+        <div className="flex flex-1 justify-center items-center py-12">
+          <Loader2 className="h-12 w-12 animate-spin text-blue-600" />
+        </div>
       </div>
-    );
+    )
+
   }
 
   return (
@@ -144,18 +160,35 @@ export default function Offers() {
 
       <div className="flex-1 px-6 py-8 max-w-6xl mx-auto space-y-8">
         {/* Deals Section */}
-        <AvailableDeals deals={deals} />
-        <SelectedDeals setDrinkModal={setDrinkModal} />
-        <div className="flex justify-end mt-4">
-          <button
-            onClick={() => dispatch(saveOffers({ selectedDeals, id: offerId }))}
-            className="px-6 py-2 bg-green-500 text-white font-semibold rounded-xl hover:bg-green-600 transition"
-          >
-            {offerStatus === "loading" ? "Saving..." : "Save Offers"}
-          </button>
-        </div>
+        <TutorialBubble
+          show={tutorialStep === 0 && tutorial.offers === true} // start tutorial at step 0
+          text="Here you can toggle between what deals you want to provide your customers. The selected deals are the deals customers will see."
+          position="bottom"
+          onNext={() => setTutorialStep(1)} // advance tutorial
+          condition
+        >
+          <AvailableDeals deals={deals} />
+          <SelectedDeals setDrinkModal={setDrinkModal} />
+          <div className="flex justify-end mt-4">
+            <button
+              onClick={() => dispatch(saveOffers({ selectedDeals, id: offerId }))}
+              className="px-6 py-2 bg-green-500 text-white font-semibold rounded-xl hover:bg-green-600 transition"
+            >
+              {offerStatus === "loading" ? "Saving..." : "Save Offers"}
+            </button>
+          </div>
+        </TutorialBubble>
 
-        <EmailOffer />
+        <TutorialBubble
+          show={tutorialStep === 1 && tutorial.offers === true} // start tutorial at step 0
+          text="Here you can review your email offers and manage which deals to send to your customers."
+          position="top"
+          onNext={() => setTutorialStep(2)} // advance tutorial
+          onDone={() => [dispatch(changeTutorialStatusAsync('offers')), setTutorialStep(1)]}
+          condition
+        >
+          <EmailOffer />
+        </TutorialBubble>
 
 
         {/* Square Customers Section */}

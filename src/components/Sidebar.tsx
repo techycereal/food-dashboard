@@ -1,6 +1,8 @@
 import { Menu, X } from "lucide-react";
 import { NavLink } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
+import type { RootState } from "../app/store";
 
 interface SidebarProps {
   mobileOpen: boolean;
@@ -8,13 +10,25 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
-  const sections = [
-    { name: "Inventory", path: "/" },
-    { name: "Reports", path: "/reports" },
-    { name: "Offers", path: "/offers" },
-  ];
+  const [sections, setSections] = useState([
+    { name: "Inventory", path: "/", tutorial: false, key: "window" },
+    { name: "Reports", path: "/reports", tutorial: false, key: "reports" },
+    { name: "Offers", path: "/offers", tutorial: false, key: "offers" },
+  ]);
 
+  const tutorial = useSelector((state: RootState) => state.products.tutorial);
   const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    // Update sections' tutorial flags from Redux state
+    setSections((prev) =>
+      prev.map((item) => ({ ...item, tutorial: tutorial[item.key] }))
+    );
+
+    if (tutorial["window"] === false) {
+      setCollapsed(false);
+    }
+  }, [tutorial]);
 
   const linkClasses = (isActive: boolean) =>
     `
@@ -45,7 +59,7 @@ export default function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
           transform transition-all duration-300
           ${mobileOpen ? "translate-x-0" : "-translate-x-full"}
           md:translate-x-0
-          font-sora 
+          font-sora
         `}
       >
         {/* Header */}
@@ -67,18 +81,37 @@ export default function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
         </div>
 
         {/* Links */}
-        <nav className="flex-1 flex flex-col space-y-4 mt-4">
-          {sections.map((section) => (
-            <NavLink
-              key={section.name}
-              to={section.path}
-              end
-              onClick={() => setMobileOpen(false)}
-              className={({ isActive }) => linkClasses(isActive)}
-            >
-              {collapsed ? section.name[0] : section.name}
-            </NavLink>
-          ))}
+        <nav className="flex-1 flex flex-col space-y-4 mt-4 relative">
+          {sections.map((section) => {
+            const showReportsBubble = section.key === "reports" && tutorial["window"] === false && tutorial["reports"] == true;
+            const showOffersBubble =
+              section.key === "offers" &&
+              tutorial["window"] === false &&
+              tutorial["reports"] === false && tutorial["offers"] === true;
+
+            return (
+              <div key={section.name} className="relative">
+                <NavLink
+                  to={section.path}
+                  end
+                  onClick={() => setMobileOpen(false)}
+                  className={({ isActive }) => linkClasses(isActive)}
+                >
+                  {collapsed ? section.name[0] : section.name}
+                </NavLink>
+
+                {/* Small Tutorial Bubble */}
+                {!collapsed && (showReportsBubble || showOffersBubble) && (
+                  <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 w-40 p-2 bg-black/90 text-white text-xs rounded shadow-lg z-50 pointer-events-none">
+                    {showReportsBubble
+                      ? "Click here to Learn About Reports!"
+                      : "Click here to Learn About What You Can Offer your Customers!"}
+                    <div className="absolute w-2 h-2 bg-black/90 rotate-45 -left-1 top-1/2 -translate-y-1/2" />
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </nav>
 
         {/* Settings */}

@@ -73,8 +73,7 @@ export default function ReportBoard({ currentSummary, bestSeller }: ReportBoardC
             ))}
 
             {/* Best Seller */}
-            {bestSeller && (
-                <div className="
+            <div className="
                     bg-[#FFFF88]
                     shadow-[0_2px_2px_rgba(0,0,0,0.4)]
                     flex flex-col items-center justify-center
@@ -82,17 +81,21 @@ export default function ReportBoard({ currentSummary, bestSeller }: ReportBoardC
                     aspect-square
                     w-full max-w-[160px]
                 ">
-                    <h3 className="text-[11px] sm:text-xs font-semibold text-gray-700">
-                        Best Seller
-                    </h3>
-                    <p className="text-sm sm:text-base font-medium text-gray-900 text-center mt-1 leading-tight">
-                        {bestSeller.item}
-                        <span className="block text-xs text-gray-600">
-                            ({bestSeller.quantity} sold)
-                        </span>
-                    </p>
-                </div>
-            )}
+                <h3 className="text-[11px] sm:text-xs font-semibold text-gray-700">
+                    Best Seller
+                </h3>
+                <p className="text-sm sm:text-base font-medium text-gray-900 text-center mt-1 leading-tight">
+                    {bestSeller ?
+                        <>
+                            {bestSeller.item}
+                            <span className="block text-xs text-gray-600">
+                                ({bestSeller.quantity} sold)
+                            </span></>
+                        :
+                        <span className="text-xl sm:text-lg font-bold text-gray-900 mt-1">None</span>
+                    }
+                </p>
+            </div>
         </div>
     );
 }
