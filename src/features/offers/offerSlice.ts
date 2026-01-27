@@ -51,7 +51,7 @@ export const fetchOffers = createAsyncThunk<
 
       const token = await user.getIdToken();
 
-  const response = await axios.get("http://localhost:3001/get_offers", {
+  const response = await axios.get("https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/get_offers", {
     headers: { Authorization: `Bearer ${token}` },
   });
 
@@ -78,7 +78,7 @@ export const saveOffers = createAsyncThunk<
       const token = await user.getIdToken();
 
   const response = await axios.post(
-    "http://localhost:3001/add_offer",
+    "https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/add_offer",
     { deals, id },
     {
       headers: { Authorization: `Bearer ${token}` },

@@ -70,7 +70,7 @@ export default function Window({ handleEdit, setSelectedItem, openModal, openWiF
 
   useEffect(() => {
     const name = async () => {
-      const response = await axios.get('http://localhost:3001/get_name', { headers: { Authorization: `Bearer ${auth}` } })
+      const response = await axios.get('https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/get_name', { headers: { Authorization: `Bearer ${auth}` } })
       setBusinessName(response.data.message)
       dispatch(addName(response.data.message))
     }
@@ -118,7 +118,7 @@ export default function Window({ handleEdit, setSelectedItem, openModal, openWiF
     try {
       setSyncing(true);
       setSuccess(false);
-      await axios.put("http://localhost:3001/natspush", {}, { headers: { Authorization: `Bearer ${auth}` } });
+      await axios.put("https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/natspush", {}, { headers: { Authorization: `Bearer ${auth}` } });
       setSuccess(true);
       confetti({ particleCount: 400, spread: 400, origin: { y: 0.5 } });
       setTimeout(() => setSuccess(false), 3000);

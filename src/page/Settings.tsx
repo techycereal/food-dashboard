@@ -54,7 +54,7 @@ export default function Settings() {
       if (!user) throw new Error("Not authenticated");
 
       const token = await user.getIdToken();
-      const response = await axios.get('http://localhost:3001/get_name', { headers: { Authorization: `Bearer ${token}` } })
+      const response = await axios.get('https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/get_name', { headers: { Authorization: `Bearer ${token}` } })
       setBusinessName(response.data.message)
       dispatch(addName(response.data.message))
     }
@@ -67,7 +67,7 @@ export default function Settings() {
 
   const logout = async () => {
     try {
-      await fetch("http://localhost:3001/logout", {
+      await fetch("https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/logout", {
         method: "POST",
         credentials: "include",
       });
@@ -88,7 +88,7 @@ export default function Settings() {
 
     const token = await user.getIdToken();
     await axios.post(
-      "http://localhost:3001/add_business_name",
+      "https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/add_business_name",
       { name: businessName },
       { headers: { Authorization: `Bearer ${token}` } }
     );

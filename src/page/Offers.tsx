@@ -92,7 +92,7 @@ export default function Offers() {
   useEffect(() => {
     const fetchCustomers = async () => {
       try {
-        const response = await fetch("http://localhost:3001/square/customers", { credentials: "include" });
+        const response = await fetch("https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/square/customers", { credentials: "include" });
         if (response.status === 401) {
           setSquareConnected(false);
           return;
@@ -115,7 +115,7 @@ export default function Offers() {
         if (!user) throw new Error("Not authenticated");
 
         const token = await user.getIdToken();
-        const response = await axios.get('http://localhost:3001/get_drinks', { headers: { 'Authorization': `Bearer ${token}` } })
+        const response = await axios.get('https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/get_drinks', { headers: { 'Authorization': `Bearer ${token}` } })
         console.log(response.data.data[0].drinks)
         setDrinks(response.data.data[0].drinks)
       } catch (err) {
@@ -217,7 +217,7 @@ export default function Offers() {
             )
           ) : (
             <div
-              onClick={() => (window.location.href = "http://localhost:3001/square/login")}
+              onClick={() => (window.location.href = "https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/square/login")}
               className="cursor-pointer flex flex-col items-center justify-center rounded-full hover:scale-105 transition-transform p-6 border border-gray-200"
               title="Connect Square Account"
             >

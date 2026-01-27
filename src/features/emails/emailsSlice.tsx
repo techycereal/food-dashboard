@@ -11,7 +11,7 @@ export const fetchEmails = createAsyncThunk(
 
       const token = await user.getIdToken(); // 🔥 always fresh
 
-      const response = await axios.get("http://localhost:3001/get_emails", {
+      const response = await axios.get("https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/get_emails", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -34,7 +34,7 @@ export const addEmail = createAsyncThunk(
       const token = await user.getIdToken(); // 🔥 always fresh
 
       const response = await axios.post(
-        "http://localhost:3001/add_email",
+        "https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/add_email",
         { email },
         {
           headers: {

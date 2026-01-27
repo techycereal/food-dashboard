@@ -83,7 +83,7 @@ export default function App() {
   const deleteItem = async () => {
     dispatch(deleteProduct(selectedItem?.id as string));
     console.log(user)
-    await axios.post("http://localhost:3001/delete_data", selectedItem, { headers: { "Authorization": `Bearer ${auth}` } });
+    await axios.post("https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/delete_data", selectedItem, { headers: { "Authorization": `Bearer ${auth}` } });
   };
 
   return (

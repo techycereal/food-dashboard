@@ -152,8 +152,8 @@ const Modal: FC<ModalProps> = ({
 
       const endpoint =
         editIndex !== undefined
-          ? "http://localhost:3001/edit_data"
-          : "http://localhost:3001/add_data";
+          ? "https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/edit_data"
+          : "https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/add_data";
 
       const method = editIndex !== undefined ? "PUT" : "POST";
 

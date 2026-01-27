@@ -71,7 +71,7 @@ export default function DrinkModal({
       const token = await user.getIdToken();
 
       await axios.post(
-        "http://localhost:3001/add_drinks",
+        "https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/add_drinks",
         { drinks: allDrinks },
         { headers: { Authorization: `Bearer ${token}` } }
       );

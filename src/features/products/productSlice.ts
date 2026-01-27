@@ -52,7 +52,7 @@ export const fetchProducts = createAsyncThunk<Item[]>(
 
       const token = await user.getIdToken(); // 🔥 always fresh
 
-      const response = await axios.get("http://localhost:3001/get_data", {
+      const response = await axios.get("https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/get_data", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -80,7 +80,7 @@ export const fetchTutorial = createAsyncThunk<Tutorial>(
 
       const token = await user.getIdToken(); // 🔥 always fresh
 
-      const response = await axios.get("http://localhost:3001/get_tutorial", {
+      const response = await axios.get("https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/get_tutorial", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -114,7 +114,7 @@ export const changeTutorialStatusAsync = createAsyncThunk<
     if (section === "offers") {
       const token = await user.getIdToken();
       await axios.put(
-        "http://localhost:3001/finish_tutorial",
+        "https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/finish_tutorial",
         {},
         {
           headers: { Authorization: `Bearer ${token}` },
