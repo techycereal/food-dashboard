@@ -45,7 +45,7 @@ export const fetchOffers = createAsyncThunk<
   Offers,
   void,
   { state: RootState }
->("offers/fetchOffers", async (_, { getState }) => {
+>("offers/fetchOffers", async (_, { }) => {
   const user = auth.currentUser;
       if (!user) throw new Error("Not authenticated");
 
@@ -70,7 +70,7 @@ export const saveOffers = createAsyncThunk<
   Offers,
   { selectedDeals: DealType; id: string },
   { state: RootState }
->("offers/saveOffers", async ({ selectedDeals, id }, { getState }) => {
+>("offers/saveOffers", async ({ selectedDeals, id }, { }) => {
   const deals = selectedDeals
   const user = auth.currentUser;
       if (!user) throw new Error("Not authenticated");

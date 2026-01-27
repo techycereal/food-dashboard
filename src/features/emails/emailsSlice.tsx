@@ -51,8 +51,12 @@ export const addEmail = createAsyncThunk(
 );
 
 interface EmailsState {
-  emails: string[];
+  emails: PayloadType[];
   status: "idle" | "loading" | "failed";
+}
+
+interface PayloadType {
+  email: string;
 }
 
 const initialState: EmailsState = {
@@ -69,14 +73,14 @@ const emailsSlice = createSlice({
       .addCase(fetchEmails.pending, (state) => {
         state.status = "loading";
       })
-      .addCase(fetchEmails.fulfilled, (state, action: PayloadAction<string[]>) => {
+      .addCase(fetchEmails.fulfilled, (state, action: PayloadAction<PayloadType[]>) => {
         state.status = "idle";
         state.emails = action.payload;
       })
       .addCase(fetchEmails.rejected, (state) => {
         state.status = "failed";
       })
-      .addCase(addEmail.fulfilled, (state, action: PayloadAction<string[]>) => {
+      .addCase(addEmail.fulfilled, (state, action: PayloadAction<PayloadType[]>) => {
         state.emails = action.payload;
       });
   },

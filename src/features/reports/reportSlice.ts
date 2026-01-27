@@ -49,7 +49,7 @@ export const fetchReports = createAsyncThunk<
   Report[],
   void,
   { state: RootState }
->("reports/fetchReports", async (_, { getState }) => {
+>("reports/fetchReports", async (_, { }) => {
   const user = auth.currentUser;
       if (!user) throw new Error("Not authenticated");
 
@@ -67,7 +67,7 @@ export const fetchTimeReports = createAsyncThunk<
   any[],
   void,
   { state: RootState }
->("reports/fetchTimeReports", async (_, { getState }) => {
+>("reports/fetchTimeReports", async (_, { }) => {
   const user = auth.currentUser;
       if (!user) throw new Error("Not authenticated");
 
@@ -84,7 +84,7 @@ export const fetchPurchases = createAsyncThunk<
   PurchasesResponse,
   void,
   { state: RootState }
->("reports/fetchPurchases", async (_, { getState }) => {
+>("reports/fetchPurchases", async (_, { }) => {
   const user = auth.currentUser;
       if (!user) throw new Error("Not authenticated");
 

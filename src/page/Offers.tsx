@@ -21,6 +21,20 @@ import { TutorialBubble } from "../components/TutorialBubble"; // make sure to i
 import { changeTutorialStatusAsync } from "../features/products/productSlice";
 export type DealType = Record<string, { name: string; future: string | null; show: number }>;
 
+interface Customer {
+  id: string;
+  given_name: string;
+  family_name: string;
+  email_address: string;
+}
+
+const backgroundGradient = {
+  backgroundImage:
+    "linear-gradient(90deg, rgba(184,154,122,0) 0%, rgba(184,154,122,0) 100%), " +
+    "linear-gradient(134.583deg, rgba(214,242,244,0) 48.915%, rgb(167,216,255) 93.019%), " +
+    "linear-gradient(137.884deg, rgba(222,242,243,1) 0%, rgb(214,242,244) 50.018%)",
+};
+
 export default function Offers() {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
@@ -28,14 +42,13 @@ export default function Offers() {
   // --- Local State ---
   const [mobileOpen, setMobileOpen] = useState(false);
   const [squareConnected, setSquareConnected] = useState<boolean | null>(null);
-  const [customers, setCustomers] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [drinkModal, setDrinkModal] = useState(false);
   const selectedDeals = useSelector(
     (state: RootState) => state.offers.selectedDeals.deals
   );
   // --- Redux State ---
   const emails = useSelector((state: RootState) => state.emails.emails);
-  const offers = useSelector((state: RootState) => state.offers.selectedDeals.deals);
   const offerId = useSelector((state: RootState) => state.offers.selectedDeals.id);
   const offerStatus = useSelector((state: RootState) => state.offers.status);
   const [drinks, setDrinks] = useState<string[]>([]);
@@ -65,7 +78,7 @@ export default function Offers() {
 
         // Only fetch if empty
         if (!emails.length) dispatch(fetchEmails());
-        if (!Object.keys(offers).length) dispatch(fetchOffers());
+        if (!Object.keys(selectedDeals).length) dispatch(fetchOffers());
       } else {
         dispatch(clearAuth());
         navigate("/signin");
@@ -73,7 +86,7 @@ export default function Offers() {
     });
 
     return () => unsubscribe();
-  }, [dispatch, navigate]);
+  }, [dispatch, navigate, selectedDeals, emails]);
 
   // --- Fetch Square Customers ---
   useEffect(() => {
@@ -97,13 +110,17 @@ export default function Offers() {
 
   useEffect(() => {
     const getDrinks = async () => {
-      const user = auth.currentUser;
-      if (!user) throw new Error("Not authenticated");
+      try {
+        const user = auth.currentUser;
+        if (!user) throw new Error("Not authenticated");
 
-      const token = await user.getIdToken();
-      const response = await axios.get('http://localhost:3001/get_drinks', { headers: { 'Authorization': `Bearer ${token}` } })
-      console.log(response.data.data[0].drinks)
-      setDrinks(response.data.data[0].drinks)
+        const token = await user.getIdToken();
+        const response = await axios.get('http://localhost:3001/get_drinks', { headers: { 'Authorization': `Bearer ${token}` } })
+        console.log(response.data.data[0].drinks)
+        setDrinks(response.data.data[0].drinks)
+      } catch (err) {
+        console.error("Failed to fetch drinks:", err);
+      }
     }
     getDrinks()
   }, []);
@@ -114,12 +131,7 @@ export default function Offers() {
     return (
       <div
         className="h-screen w-full flex bg-[#b8f2f1] overflow-y-auto pb-10"
-        style={{
-          backgroundImage:
-            "linear-gradient(90deg, rgba(184,154,122,0) 0%, rgba(184,154,122,0) 100%), " +
-            "linear-gradient(134.583deg, rgba(214,242,244,0) 48.915%, rgb(167,216,255) 93.019%), " +
-            "linear-gradient(137.884deg, rgba(222,242,243,1) 0%, rgb(214,242,244) 50.018%)",
-        }}
+        style={backgroundGradient}
       >
         <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
         <div className="flex flex-1 justify-center items-center py-12">
@@ -133,12 +145,7 @@ export default function Offers() {
   return (
     <div
       className="h-screen w-full flex bg-[#b8f2f1] overflow-y-auto pb-10"
-      style={{
-        backgroundImage:
-          "linear-gradient(90deg, rgba(184,154,122,0) 0%, rgba(184,154,122,0) 100%), " +
-          "linear-gradient(134.583deg, rgba(214,242,244,0) 48.915%, rgb(167,216,255) 93.019%), " +
-          "linear-gradient(137.884deg, rgba(222,242,243,1) 0%, rgb(214,242,244) 50.018%)",
-      }}
+      style={backgroundGradient}
     >
       {/* Sidebar */}
       <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
@@ -184,7 +191,7 @@ export default function Offers() {
           text="Here you can review your email offers and manage which deals to send to your customers."
           position="top"
           onNext={() => setTutorialStep(2)} // advance tutorial
-          onDone={() => [dispatch(changeTutorialStatusAsync('offers')), setTutorialStep(1)]}
+          onDone={() => { dispatch(changeTutorialStatusAsync('offers')); setTutorialStep(1); }}
           condition
         >
           <EmailOffer />

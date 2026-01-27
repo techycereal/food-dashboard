@@ -8,7 +8,7 @@ export default function EmailOffer() {
     const emailStatus = useSelector((state: RootState) => state.emails.status);
 
     const exportToCSV = () => {
-        const csvContent = "Email\n" + emails.join("\n");
+        const csvContent = "Email\n" + emails.map(e => e.email).join("\n");
         const blob = new Blob([csvContent], {
             type: "text/csv;charset=utf-8;",
         });
