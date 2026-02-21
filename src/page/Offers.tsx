@@ -119,7 +119,7 @@ export default function Offers() {
         if (!user) throw new Error("Not authenticated");
 
         const token = await user.getIdToken();
-        const response = await axios.get(`${apiUrl}'}/get_drinks`, { headers: { 'Authorization': `Bearer ${token}` } })
+        const response = await axios.get(`${apiUrl}/get_drinks`, { headers: { 'Authorization': `Bearer ${token}` } })
         console.log(response.data.data[0].drinks)
         setDrinks(response.data.data[0].drinks)
       } catch (err) {
