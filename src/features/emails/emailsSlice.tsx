@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from "@reduxjs/toolkit";
 import axios from "axios";
 import { auth } from "../../lib/firebase";
-
+const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 export const fetchEmails = createAsyncThunk(
   "emails/fetchEmails",
   async (_, { rejectWithValue }) => {
@@ -11,7 +11,7 @@ export const fetchEmails = createAsyncThunk(
 
       const token = await user.getIdToken(); // 🔥 always fresh
 
-      const response = await axios.get("https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/get_emails", {
+      const response = await axios.get(`${apiUrl}/get_emails`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -23,7 +23,6 @@ export const fetchEmails = createAsyncThunk(
     }
   }
 );
-
 export const addEmail = createAsyncThunk(
   "emails/addEmail",
   async (email: string, { rejectWithValue }) => {
@@ -34,7 +33,7 @@ export const addEmail = createAsyncThunk(
       const token = await user.getIdToken(); // 🔥 always fresh
 
       const response = await axios.post(
-        "https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/add_email",
+        `${apiUrl}/add_email`,
         { email },
         {
           headers: {

@@ -41,7 +41,7 @@ const initialState: ProductsState = {
   },
   tutorialFetched: false
 };
-
+const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 // Fetch products only if items array is empty
 export const fetchProducts = createAsyncThunk<Item[]>(
   "products/get_data",
@@ -52,7 +52,7 @@ export const fetchProducts = createAsyncThunk<Item[]>(
 
       const token = await user.getIdToken(); // 🔥 always fresh
 
-      const response = await axios.get("https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/get_data", {
+      const response = await axios.get(`${apiUrl}/get_data`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -80,7 +80,7 @@ export const fetchTutorial = createAsyncThunk<Tutorial>(
 
       const token = await user.getIdToken(); // 🔥 always fresh
 
-      const response = await axios.get("https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/get_tutorial", {
+      const response = await axios.get(`${apiUrl}/get_tutorial`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -114,7 +114,7 @@ export const changeTutorialStatusAsync = createAsyncThunk<
     if (section === "offers") {
       const token = await user.getIdToken();
       await axios.put(
-        "https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/finish_tutorial",
+        `${apiUrl}/finish_tutorial`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },

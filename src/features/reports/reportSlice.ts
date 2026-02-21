@@ -44,7 +44,7 @@ type PurchasesResponse = {
 /* =======================
    THUNKS
 ======================= */
-
+const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 export const fetchReports = createAsyncThunk<
   Report[],
   void,
@@ -55,7 +55,7 @@ export const fetchReports = createAsyncThunk<
 
       const token = await user.getIdToken();
 
-  const response = await axios.get("https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/get_report", {
+  const response = await axios.get(`${apiUrl}/get_report`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   console.log(response.data)
@@ -73,7 +73,7 @@ export const fetchTimeReports = createAsyncThunk<
 
       const token = await user.getIdToken();
 
-  const response = await axios.get("https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/get_time_report", {
+  const response = await axios.get(`${apiUrl}/get_time_report`, {
     headers: { Authorization: `Bearer ${token}` },
   });
 console.log(response.data)
@@ -90,7 +90,7 @@ export const fetchPurchases = createAsyncThunk<
 
       const token = await user.getIdToken();
 
-  const response = await axios.get("https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/get_purchases", {
+  const response = await axios.get(`${apiUrl}/get_purchases`, {
     headers: { Authorization: `Bearer ${token}` },
   });
 

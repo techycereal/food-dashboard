@@ -1,6 +1,6 @@
 // Offers.tsx
 import Sidebar from "../components/Sidebar";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchEmails } from "../features/emails/emailsSlice";
 import { fetchOffers, saveOffers } from "../features/offers/offerSlice";
@@ -20,7 +20,7 @@ import { Loader2 } from "lucide-react";
 import { TutorialBubble } from "../components/TutorialBubble"; // make sure to import
 import { changeTutorialStatusAsync } from "../features/products/productSlice";
 export type DealType = Record<string, { name: string; future: string | null; show: number }>;
-
+const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 interface Customer {
   id: string;
   given_name: string;
@@ -38,7 +38,7 @@ const backgroundGradient = {
 export default function Offers() {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
-
+  const hasFetchedInitialData = useRef(false);
   // --- Local State ---
   const [mobileOpen, setMobileOpen] = useState(false);
   const [squareConnected, setSquareConnected] = useState<boolean | null>(null);
@@ -78,6 +78,10 @@ export default function Offers() {
 
         // Only fetch if empty
         if (!emails.length) dispatch(fetchEmails());
+        if (!hasFetchedInitialData.current) {
+
+          hasFetchedInitialData.current = true; // Mark as done
+        }
         if (!Object.keys(selectedDeals).length) dispatch(fetchOffers());
       } else {
         dispatch(clearAuth());
@@ -92,7 +96,7 @@ export default function Offers() {
   useEffect(() => {
     const fetchCustomers = async () => {
       try {
-        const response = await fetch("https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/square/customers", { credentials: "include" });
+        const response = await fetch(`${apiUrl}/square/customers`, { credentials: "include" });
         if (response.status === 401) {
           setSquareConnected(false);
           return;
@@ -115,7 +119,7 @@ export default function Offers() {
         if (!user) throw new Error("Not authenticated");
 
         const token = await user.getIdToken();
-        const response = await axios.get('https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/get_drinks', { headers: { 'Authorization': `Bearer ${token}` } })
+        const response = await axios.get(`${apiUrl}'}/get_drinks`, { headers: { 'Authorization': `Bearer ${token}` } })
         console.log(response.data.data[0].drinks)
         setDrinks(response.data.data[0].drinks)
       } catch (err) {

@@ -14,7 +14,7 @@ const MAX_DRINK_LENGTH = 40;
 
 const normalizeDrink = (value: string) =>
   value.trim().slice(0, MAX_DRINK_LENGTH);
-
+const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 export default function DrinkModal({
   setDrinkModal,
   drinks,
@@ -71,7 +71,7 @@ export default function DrinkModal({
       const token = await user.getIdToken();
 
       await axios.post(
-        "https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/add_drinks",
+        `${apiUrl}/add_drinks`,
         { drinks: allDrinks },
         { headers: { Authorization: `Bearer ${token}` } }
       );

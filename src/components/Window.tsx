@@ -27,7 +27,7 @@ const TUTORIAL_STEPS = [
   "delete-item",
   "sync-data",
 ] as const;
-
+const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 type TutorialStep = (typeof TUTORIAL_STEPS)[number];
 
 export default function Window({ handleEdit, setSelectedItem, openModal, openWiFi }: WindowProps) {
@@ -70,7 +70,7 @@ export default function Window({ handleEdit, setSelectedItem, openModal, openWiF
 
   useEffect(() => {
     const name = async () => {
-      const response = await axios.get('https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/get_name', { headers: { Authorization: `Bearer ${auth}` } })
+      const response = await axios.get(`${apiUrl}/get_name`, { headers: { Authorization: `Bearer ${auth}` } })
       setBusinessName(response.data.message)
       dispatch(addName(response.data.message))
     }
@@ -118,7 +118,7 @@ export default function Window({ handleEdit, setSelectedItem, openModal, openWiF
     try {
       setSyncing(true);
       setSuccess(false);
-      await axios.put("https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/natspush", {}, { headers: { Authorization: `Bearer ${auth}` } });
+      await axios.put(`${apiUrl}/natspush`, {}, { headers: { Authorization: `Bearer ${auth}` } });
       setSuccess(true);
       confetti({ particleCount: 400, spread: 400, origin: { y: 0.5 } });
       setTimeout(() => setSuccess(false), 3000);
@@ -210,7 +210,7 @@ export default function Window({ handleEdit, setSelectedItem, openModal, openWiF
         </div>
 
         {/* Header */}
-        <div className="relative z-10 text-center py-12">
+        <div className="relative z-10 text-center py-20 md:py-18 lg:py-18 xl:py-12">
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-wide text-chalk-shadow">
             {businessName}
           </h1>

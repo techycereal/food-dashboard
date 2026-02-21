@@ -22,7 +22,7 @@ type FieldErrors = Partial<{
   quantity: string;
   file: string;
 }>;
-
+const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 const Modal: FC<ModalProps> = ({
   isOpen,
   onClose,
@@ -111,10 +111,6 @@ const Modal: FC<ModalProps> = ({
       }
     }
 
-    if (editIndex === undefined && !file) {
-      errors.file = "Image is required.";
-    }
-
     if (file) {
       const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
       if (!allowedTypes.includes(file.type)) {
@@ -152,8 +148,8 @@ const Modal: FC<ModalProps> = ({
 
       const endpoint =
         editIndex !== undefined
-          ? "https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/edit_data"
-          : "https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/add_data";
+          ? `${apiUrl}/edit_data`
+          : `${apiUrl}/add_data`;
 
       const method = editIndex !== undefined ? "PUT" : "POST";
 

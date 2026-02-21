@@ -27,7 +27,7 @@ interface OffersState {
   status: "idle" | "loading" | "failed" | "success";
 }
 
-
+const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 //
 // INITIAL STATE
 //
@@ -51,7 +51,7 @@ export const fetchOffers = createAsyncThunk<
 
       const token = await user.getIdToken();
 
-  const response = await axios.get("https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/get_offers", {
+  const response = await axios.get(`${apiUrl}/get_offers`, {
     headers: { Authorization: `Bearer ${token}` },
   });
 
@@ -78,7 +78,7 @@ export const saveOffers = createAsyncThunk<
       const token = await user.getIdToken();
 
   const response = await axios.post(
-    "https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/add_offer",
+    `${apiUrl}/add_offer`,
     { deals, id },
     {
       headers: { Authorization: `Bearer ${token}` },

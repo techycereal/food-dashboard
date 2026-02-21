@@ -11,16 +11,19 @@ import { onAuthStateChanged } from "firebase/auth";
 import { setCredentials } from "../features/auth/authSlice";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../lib/firebase";
+const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 export default function Settings() {
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [inventoryCode, setInventoryCode] = useState("");
+  const [codeSaved, setCodeSaved] = useState(false);
 
   const cachedName = useSelector((state: RootState) => state.products.name);
   const [businessName, setBusinessName] = useState(
     cachedName.length > 0 ? cachedName : ""
   );
   const [saved, setSaved] = useState(false);
-
+  const auths = useSelector((state: RootState) => state.auth.token);
   const dispatch = useDispatch();
   useEffect(() => {
     const auth = getAuth();
@@ -54,7 +57,7 @@ export default function Settings() {
       if (!user) throw new Error("Not authenticated");
 
       const token = await user.getIdToken();
-      const response = await axios.get('https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/get_name', { headers: { Authorization: `Bearer ${token}` } })
+      const response = await axios.get(`${apiUrl}/get_name`, { headers: { Authorization: `Bearer ${token}` } })
       setBusinessName(response.data.message)
       dispatch(addName(response.data.message))
     }
@@ -67,7 +70,7 @@ export default function Settings() {
 
   const logout = async () => {
     try {
-      await fetch("https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/logout", {
+      await fetch(`${apiUrl}/logout`, {
         method: "POST",
         credentials: "include",
       });
@@ -82,13 +85,24 @@ export default function Settings() {
     }
   };
 
+  const saveCode = async () => {
+    try {
+      const response = await axios.post(`${apiUrl}/saveCode`, { inventoryCode }, { headers: { Authorization: `Bearer ${auths}` } })
+      setCodeSaved(true);
+      setTimeout(() => setCodeSaved(false), 2000);
+      console.log(response.data)
+    } catch (err) {
+      console.log(err)
+    }
+  }
+
   const saveName = async () => {
     const user = auth.currentUser;
     if (!user) throw new Error("Not authenticated");
 
     const token = await user.getIdToken();
     await axios.post(
-      "https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/add_business_name",
+      `${apiUrl}/add_business_name`,
       { name: businessName },
       { headers: { Authorization: `Bearer ${token}` } }
     );
@@ -167,6 +181,47 @@ export default function Settings() {
 
         {/* Controls */}
         <div className="flex flex-col gap-3 w-full max-w-sm">
+          <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-6">
+            <h2 className="text-xl font-bold mb-2 text-gray-800">
+              Offline Inventory Access Code
+            </h2>
+
+            <p className="text-sm text-gray-600 mb-4 leading-relaxed">
+              Set a 6-digit code that allows you or your staff to manage inventory
+              during a rush directly from their phone — even without internet or
+              cell service. This works completely offline.
+            </p>
+
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength={6}
+              value={inventoryCode}
+              onChange={(e) => {
+                const value = e.target.value.replace(/\D/g, "");
+                setInventoryCode(value);
+              }}
+              placeholder="Enter 6-digit code"
+              className="w-full text-center tracking-widest text-lg border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-teal-400"
+            />
+
+            <button
+              onClick={() => {
+                if (inventoryCode.length === 6) {
+                  saveCode()
+                }
+              }}
+              className="mt-4 w-full bg-teal-500 hover:bg-teal-600 text-white py-2 rounded-lg font-semibold transition-transform hover:scale-105"
+            >
+              Save Code
+            </button>
+
+            {codeSaved && (
+              <p className="text-green-500 text-center mt-3 font-semibold">
+                Code Saved Successfully
+              </p>
+            )}
+          </div>
 
 
 
