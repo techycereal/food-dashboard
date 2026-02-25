@@ -102,7 +102,7 @@ export const fetchPurchases = createAsyncThunk<
    STATE
 ======================= */
 
-interface ReportsState {
+export interface ReportsState {
   reports: Report[];
   timeReports: any[];
   purchases: Purchase[];

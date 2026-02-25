@@ -8,6 +8,7 @@ import confetti from "canvas-confetti";
 import { FaTrashCan, FaWifi } from "react-icons/fa6";
 import { FaPencilAlt } from "react-icons/fa";
 import { FaPlus } from "react-icons/fa";
+import { FaXmark } from "react-icons/fa6";
 import Chalk from '../../public/chalk.png'
 import { addName, changeTutorialStatusAsync } from "../features/products/productSlice";
 import { TutorialBubble } from "./TutorialBubble";
@@ -46,6 +47,7 @@ export default function Window({ handleEdit, setSelectedItem, openModal, openWiF
   const [categoriesPerPage, setCategoriesPerPage] = useState(3);
   const [businessName, setBusinessName] = useState(cachedName.length > 0 ? cachedName : '')
   const [tutorialStepIndex, setTutorialStepIndex] = useState(0);
+  const [showErrorModal, setShowErrorModal] = useState(false);
 
   const currentStep: TutorialStep | null =
     showTutorial ? TUTORIAL_STEPS[tutorialStepIndex] : null;
@@ -118,12 +120,14 @@ export default function Window({ handleEdit, setSelectedItem, openModal, openWiF
     try {
       setSyncing(true);
       setSuccess(false);
+      setShowErrorModal(false); // Reset error state on retry
       await axios.put(`${apiUrl}/natspush`, {}, { headers: { Authorization: `Bearer ${auth}` } });
       setSuccess(true);
       confetti({ particleCount: 400, spread: 400, origin: { y: 0.5 } });
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
       console.error("Push failed:", err);
+      setShowErrorModal(true); // Open the error modal
     } finally {
       setSyncing(false);
     }
@@ -218,6 +222,43 @@ export default function Window({ handleEdit, setSelectedItem, openModal, openWiF
 
         {/* Content */}
         {/* Content */}
+        {showErrorModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <div className="bg-[#2d2d2d] border-2 border-red-500 rounded-2xl p-6 max-w-md w-full shadow-2xl animate-in fade-in zoom-in duration-200">
+              <div className="flex justify-between items-start mb-4">
+                <h2 className="text-2xl font-bold text-red-500">Oops!</h2>
+                <button
+                  onClick={() => setShowErrorModal(false)}
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
+                  <FaXmark size={24} />
+                </button>
+              </div>
+
+              <p className="text-gray-200 mb-6 leading-relaxed">
+                It looks like your items couldn't save to your CurbBox. Here's some steps to fix this:
+              </p>
+
+              <ul className="space-y-3 text-gray-300 mb-8">
+                <li className="flex gap-3 items-start">
+                  <span className="flex items-center justify-center bg-red-500/20 text-red-400 rounded-full h-6 w-6 text-sm font-bold shrink-0">1</span>
+                  Ensure your CurbSuite Box is connected to the internet
+                </li>
+                <li className="flex gap-3 items-start">
+                  <span className="flex items-center justify-center bg-red-500/20 text-red-400 rounded-full h-6 w-6 text-sm font-bold shrink-0">2</span>
+                  Reload your page
+                </li>
+              </ul>
+
+              <button
+                onClick={() => window.location.reload()}
+                className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-all active:scale-95"
+              >
+                Reload Page
+              </button>
+            </div>
+          </div>
+        )}
         {loading ? (
           <div className="flex flex-1 justify-center items-center py-12">
             <Loader2 className="h-12 w-12 animate-spin text-blue-600" />

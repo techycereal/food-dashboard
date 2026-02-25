@@ -7,7 +7,7 @@ import {
   fetchPurchases,
 } from "../features/reports/reportSlice";
 import Sidebar from "../components/Sidebar";
-import { Menu } from "lucide-react";
+import { Menu, Loader2 } from "lucide-react";
 import "@tailwindplus/elements";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { clearAuth, setCredentials } from "../features/auth/authSlice";
@@ -19,7 +19,18 @@ import Chart from "../components/Chart";
 import { FaClipboardList } from "react-icons/fa";
 import { TutorialBubble } from "../components/TutorialBubble";
 import { changeTutorialStatusAsync } from "../features/products/productSlice";
+// 1. Import the interface from your slice
+// 1. Import the interface from your slice
+import type { ReportsState } from "../features/reports/reportSlice";
 export type Period = "Daily" | "Weekly" | "Monthly" | "Yearly";
+
+const LOADING_MESSAGES = [
+  "Updating reports...",
+  "Looking at data right now hold on...",
+  "Crunching the numbers...",
+  "Organizing your sales...",
+  "Almost there...",
+];
 
 export default function ReportsDashboard() {
   // ---------------- STATE ----------------
@@ -28,11 +39,12 @@ export default function ReportsDashboard() {
   const [tutorialStep, setTutorialStep] = useState(0);
   const [period, setPeriod] = useState<Period>("Daily");
   const [mobileOpen, setMobileOpen] = useState(false);
-  const tutorial = useSelector((state: RootState) => state.products.tutorial);
+  const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
 
+  const tutorial = useSelector((state: RootState) => state.products.tutorial);
   const { user } = useSelector((state: RootState) => state.auth);
   const { reports, timeReports, status, timeStatus } = useSelector(
-    (state: RootState) => state.reports
+    (state: RootState) => state.reports as ReportsState
   );
 
   // ---------------- AUTH ----------------
@@ -70,6 +82,17 @@ export default function ReportsDashboard() {
     dispatch(fetchTimeReports() as any);
   }, [dispatch, user]);
 
+  // ---------------- LOADING TEXT ROTATION ----------------
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (status === "loading" || timeStatus === "loading") {
+      interval = setInterval(() => {
+        setLoadingMessageIndex((prev) => (prev + 1) % LOADING_MESSAGES.length);
+      }, 2500); // Change text every 2.5 seconds
+    }
+    return () => clearInterval(interval);
+  }, [status, timeStatus]);
+
   // ---------------- DERIVED DATA ----------------
   const filteredPeriods = useMemo(() => {
     return timeReports.filter((tp) => {
@@ -97,7 +120,7 @@ export default function ReportsDashboard() {
       })),
     [filteredPeriods]
   );
-  console.log(chartData)
+
   const bestSeller = useMemo(() => {
     const tally: Record<string, number> = {};
 
@@ -130,20 +153,26 @@ export default function ReportsDashboard() {
     };
   }, [filteredPeriods]);
 
-  // ---------------- LOADING (NO HOOKS BELOW) ----------------
+  // ---------------- LOADING SCREEN ----------------
   const isLoading =
-    !user ||
-    (status === "loading" && reports.length === 0) ||
-    (timeStatus === "loading" && timeReports.length === 0);
+    !user || status === "loading" || timeStatus === "loading";
 
   if (isLoading) {
     return (
-      <div className="h-screen flex items-center justify-center" style={{
-        backgroundImage:
-          "linear-gradient(137.884deg, rgba(222,242,243,1) 0%, rgb(214,242,244) 50.018%)",
-      }}>
+      <div
+        className="h-screen w-full flex flex-col items-center justify-center gap-6"
+        style={{
+          backgroundImage: "linear-gradient(137.884deg, rgba(222,242,243,1) 0%, rgb(214,242,244) 50.018%)",
+        }}
+      >
         <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
-        <div className="animate-spin h-12 w-12 rounded-full border-t-4 border-blue-500" />
+        <div className="relative flex items-center justify-center">
+          <Loader2 className="animate-spin h-16 w-16 text-blue-500" />
+          <div className="absolute h-10 w-10 rounded-full bg-blue-100/50" />
+        </div>
+        <p className="text-xl font-hand animate-pulse text-blue-800 tracking-wide">
+          {LOADING_MESSAGES[loadingMessageIndex]}
+        </p>
       </div>
     );
   }
@@ -181,8 +210,9 @@ export default function ReportsDashboard() {
         />
       </TutorialBubble>
 
+      {/* REFRESH REPORT BUTTON */}
       <button
-        className="bg-blue-400 px-3 py-3 rounded-full text-white fixed top-4 right-4 z-50"
+        className={`bg-blue-400 px-3 py-3 rounded-full text-white fixed top-4 right-4 z-50 transition-transform active:scale-90 shadow-lg`}
         onClick={() => {
           dispatch(fetchPurchases() as any);
           dispatch(fetchReports() as any);
@@ -206,6 +236,7 @@ export default function ReportsDashboard() {
           chartData={chartData}
         />
       </TutorialBubble>
+
       <TutorialBubble
         show={tutorialStep === 2 && tutorial.reports === true}
         text="Here you can review individual transactions and customer purchases."
@@ -219,10 +250,7 @@ export default function ReportsDashboard() {
         condition
       >
         <EmailBoard>
-
           <div className="font-hand h-full overflow-y-auto ml-4">
-
-
             <h2 className="text-center font-bold text-3xl mb-4">Transaction Report</h2>
             {reports.length > 0 ? (
               <table className="overflow-y min-w-full text-xs sm:text-sm md:text-base">
@@ -239,7 +267,6 @@ export default function ReportsDashboard() {
                   {reports.map((report) => (
                     <tr key={report.id} className="hover:bg-gray-50 border-t">
                       <td className="p-2">{report.email || 'No Email'}</td>
-
                       <td className="p-2">
                         <ul className="list-disc ml-4 space-y-1">
                           {report.items.map((obj, idx) => (
@@ -247,11 +274,9 @@ export default function ReportsDashboard() {
                           ))}
                         </ul>
                       </td>
-
                       <td className="p-2 whitespace-nowrap">
                         ${(report.totalPrice).toFixed(2)}
                       </td>
-
                       <td className="p-2 whitespace-nowrap">
                         {new Date(report._ts * 1000).toLocaleString()}
                       </td>
@@ -262,7 +287,6 @@ export default function ReportsDashboard() {
             ) : (
               <p className="text-center text-lg">No Transactions</p>
             )}
-
           </div>
         </EmailBoard>
       </TutorialBubble>
@@ -281,7 +305,7 @@ export default function ReportsDashboard() {
               </div>
 
               <p className="p-2 whitespace-nowrap">
-                Total Payment: ${(report.totalPrice * 100).toFixed(2)}
+                Total Payment: ${(report.totalPrice).toFixed(2)}
               </p>
             </div>
           ))}

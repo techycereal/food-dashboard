@@ -5,7 +5,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchEmails } from "../features/emails/emailsSlice";
 import { fetchOffers, saveOffers } from "../features/offers/offerSlice";
 import type { RootState, AppDispatch } from "../app/store";
-import { PiSquareLogoFill } from "react-icons/pi";
 import { Menu } from "lucide-react";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { clearAuth, setCredentials } from "../features/auth/authSlice";
@@ -21,12 +20,6 @@ import { TutorialBubble } from "../components/TutorialBubble"; // make sure to i
 import { changeTutorialStatusAsync } from "../features/products/productSlice";
 export type DealType = Record<string, { name: string; future: string | null; show: number }>;
 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-interface Customer {
-  id: string;
-  given_name: string;
-  family_name: string;
-  email_address: string;
-}
 
 const backgroundGradient = {
   backgroundImage:
@@ -41,8 +34,6 @@ export default function Offers() {
   const hasFetchedInitialData = useRef(false);
   // --- Local State ---
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [squareConnected, setSquareConnected] = useState<boolean | null>(null);
-  const [customers, setCustomers] = useState<Customer[]>([]);
   const [drinkModal, setDrinkModal] = useState(false);
   const selectedDeals = useSelector(
     (state: RootState) => state.offers.selectedDeals.deals
@@ -92,25 +83,6 @@ export default function Offers() {
     return () => unsubscribe();
   }, [dispatch, navigate, selectedDeals, emails]);
 
-  // --- Fetch Square Customers ---
-  useEffect(() => {
-    const fetchCustomers = async () => {
-      try {
-        const response = await fetch(`${apiUrl}/square/customers`, { credentials: "include" });
-        if (response.status === 401) {
-          setSquareConnected(false);
-          return;
-        }
-        const data = await response.json();
-        setCustomers(data.customers || []);
-        setSquareConnected(true);
-      } catch (err) {
-        console.error("Square fetch failed:", err);
-        setSquareConnected(false);
-      }
-    };
-    fetchCustomers();
-  }, []);
 
   useEffect(() => {
     const getDrinks = async () => {
@@ -200,38 +172,6 @@ export default function Offers() {
         >
           <EmailOffer />
         </TutorialBubble>
-
-
-        {/* Square Customers Section */}
-        <section className="bg-white p-6 rounded-2xl shadow-md">
-          <h2 className="text-xl font-bold mb-4">Square Customers</h2>
-          {squareConnected === null ? (
-            <p className="text-gray-500">Checking Square connection...</p>
-          ) : squareConnected ? (
-            customers.length === 0 ? (
-              <p className="text-gray-500">No customers found.</p>
-            ) : (
-              <ul className="space-y-2">
-                {customers.map((c) => (
-                  <li key={c.id} className="px-4 py-2 bg-gray-50 rounded-lg border">
-                    {c.given_name} {c.family_name} – {c.email_address}
-                  </li>
-                ))}
-              </ul>
-            )
-          ) : (
-            <div
-              onClick={() => (window.location.href = "https://food-truck-backend-e6gbg0eth6g3hhhk.eastus-01.azurewebsites.net/square/login")}
-              className="cursor-pointer flex flex-col items-center justify-center rounded-full hover:scale-105 transition-transform p-6 border border-gray-200"
-              title="Connect Square Account"
-            >
-              <PiSquareLogoFill size={40} className="text-black" />
-              <span className="mt-2 text-gray-700 text-sm font-medium text-center">
-                Connect Square
-              </span>
-            </div>
-          )}
-        </section>
       </div>
     </div>
   );
