@@ -36,10 +36,6 @@ type Purchase = {
   timestamp: number;
 };
 
-type PurchasesResponse = {
-  piId: string;
-  data: Purchase[];
-};
 
 /* =======================
    THUNKS
@@ -81,23 +77,22 @@ console.log(response.data)
 });
 
 export const fetchPurchases = createAsyncThunk<
-  PurchasesResponse,
+  Purchase[], // Change this from PurchasesResponse to Purchase[]
   void,
   { state: RootState }
 >("reports/fetchPurchases", async (_, { }) => {
   const user = auth.currentUser;
-      if (!user) throw new Error("Not authenticated");
+  if (!user) throw new Error("Not authenticated");
 
-      const token = await user.getIdToken();
+  const token = await user.getIdToken();
 
   const response = await axios.get(`${apiUrl}/get_purchases`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-
-  console.log(response.data)
+  
+  // Now this matches the Purchase[] return type defined above
   return response.data.data;
 });
-
 /* =======================
    STATE
 ======================= */
@@ -137,9 +132,10 @@ const reportsSlice = createSlice({
         state.status = "loading";
       })
       .addCase(fetchReports.fulfilled, (state, action: PayloadAction<Report[]>) => {
-        state.status = "idle";
-        state.reports = action.payload;
-      })
+  state.status = "idle";
+  // REPLACE the state with the new array from the server
+  state.reports = action.payload; 
+})
       .addCase(fetchReports.rejected, (state) => {
         state.status = "failed";
       });
@@ -150,9 +146,10 @@ const reportsSlice = createSlice({
         state.timeStatus = "loading";
       })
       .addCase(fetchTimeReports.fulfilled, (state, action: PayloadAction<any[]>) => {
-        state.timeStatus = "idle";
-        state.timeReports = action.payload;
-      })
+  state.timeStatus = "idle";
+  // REPLACE the state
+  state.timeReports = action.payload;
+})
       .addCase(fetchTimeReports.rejected, (state) => {
         state.timeStatus = "failed";
       });
@@ -162,18 +159,11 @@ const reportsSlice = createSlice({
       .addCase(fetchPurchases.pending, (state) => {
         state.purchaseStatus = "loading";
       })
-      .addCase(
-        fetchPurchases.fulfilled,
-        (state, action: PayloadAction<PurchasesResponse>) => {
-          state.purchaseStatus = "idle";
-          console.log(action.payload)
-          console.log(action.payload.data)
-          state.purchases = [
-            ...state.purchases,
-            ...action.payload.data,
-          ];
-        }
-      )
+      .addCase(fetchPurchases.fulfilled, (state, action: PayloadAction<Purchase[]>) => {
+  state.purchaseStatus = "idle";
+  // REPLACE the state (assuming payload is the array of purchases)
+  state.purchases = action.payload;
+})
       .addCase(fetchPurchases.rejected, (state) => {
         state.purchaseStatus = "failed";
       });

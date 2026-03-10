@@ -12,6 +12,8 @@ import { setCredentials, clearAuth } from "./features/auth/authSlice";
 import { fetchProducts, deleteProduct, fetchTutorial, type Item } from "./features/products/productSlice";
 import type { AppDispatch } from "./app/store";
 import WifiProvisionerModal from "./components/WifiProvision";
+import { addName } from "./features/products/productSlice";
+import PlaqueModal from "./components/PlaqueModel";
 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 export default function App() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -24,6 +26,21 @@ export default function App() {
   const { user } = useSelector((state: any) => state.auth);
   const auth = useSelector((state: any) => state.auth.token)
   const [isOpen, setIsOpen] = useState(false);
+  const [openPlaque, setOpenPlaque] = useState(false)
+  const [businessName, setBusinessName] = useState('')
+
+  useEffect(() => {
+    const name = async () => {
+      console.log(auth)
+      const response = await axios.get(`${apiUrl}/get_name`, { headers: { Authorization: `Bearer ${auth}` } })
+      console.log(response.data.message)
+      if (response.data.message.length < 1) {
+        setOpenPlaque(true)
+      }
+    }
+    name()
+  }, [auth])
+
   useEffect(() => {
     const auth = getAuth();
 
@@ -64,7 +81,6 @@ export default function App() {
 
   // ✅ If initialized and no user, redirect handled above
   if (!user) return null;
-
   const handleEdit = (item: Item, index: number) => {
     console.log(item)
     setEditItem(item);
@@ -84,6 +100,19 @@ export default function App() {
     dispatch(deleteProduct(selectedItem?.id as string));
     console.log(user)
     await axios.post(`${apiUrl}/delete_data`, selectedItem, { headers: { "Authorization": `Bearer ${auth}` } });
+  };
+
+  const handleSaveName = async (businessName: string) => {
+    try {
+      await axios.post(`${apiUrl}/add_business_name`,
+        { name: businessName },
+        { headers: { Authorization: `Bearer ${auth}` } }
+      );
+      dispatch(addName(businessName));
+      setOpenPlaque(false)
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (
@@ -124,6 +153,9 @@ export default function App() {
               onConfirm={deleteItem}
               item={selectedItem}
             />
+          )}
+          {openPlaque && (
+            <PlaqueModal isOpen={openPlaque} handleSaveName={handleSaveName} businessName={businessName} setBusinessName={setBusinessName} />
           )}
         </div>
       </main>

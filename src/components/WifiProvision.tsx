@@ -30,7 +30,7 @@ export default function WifiProvisionerModal({ closeModal }: WiFiProps) {
     try {
       setStatus("Pairing with Hub...");
       const device = await (navigator as any).bluetooth.requestDevice({
-        filters: [{ name: "Pi4-BLE-WiFi" }],
+        filters: [{ name: "CurbBox" }],
         optionalServices: [SERVICE_UUID],
       });
 
@@ -103,7 +103,7 @@ export default function WifiProvisionerModal({ closeModal }: WiFiProps) {
           <div className="space-y-4">
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 ml-1">
-                Network Name (SSID)
+                WiFi Name (SSID)
               </label>
               <input
                 type="text"
@@ -116,7 +116,7 @@ export default function WifiProvisionerModal({ closeModal }: WiFiProps) {
 
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 ml-1">
-                Password
+                WiFi Password
               </label>
               <div className="relative">
                 <input

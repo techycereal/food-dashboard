@@ -1,8 +1,9 @@
 import { Menu, X } from "lucide-react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom"; // Added useLocation
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import type { RootState } from "../app/store";
+import { TutorialBubble } from "./TutorialBubble";
 
 interface SidebarProps {
   mobileOpen: boolean;
@@ -10,6 +11,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
+  const location = useLocation(); // Hook to track current page
   const [sections, setSections] = useState([
     { name: "Inventory", path: "/", tutorial: false, key: "window" },
     { name: "Reports", path: "/reports", tutorial: false, key: "reports" },
@@ -17,40 +19,86 @@ export default function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
   ]);
 
   const tutorial = useSelector((state: RootState) => state.products.tutorial);
+  console.log(tutorial)
   const [collapsed, setCollapsed] = useState(false);
 
-  useEffect(() => {
-    // Update sections' tutorial flags from Redux state
-    setSections((prev) =>
-      prev.map((item) => ({ ...item, tutorial: tutorial[item.key] }))
-    );
+  // Logic: Phase is active AND user is NOT currently on that page
+  const isReportingPhase =
+    tutorial["window"] === false &&
+    tutorial["reports"] === true &&
+    location.pathname !== "/reports";
 
-    if (tutorial["window"] === false) {
-      setCollapsed(false);
-    }
+  const isOffersPhase =
+    tutorial["window"] === false &&
+    tutorial["reports"] === false &&
+    tutorial["offers"] === true &&
+    location.pathname !== "/offers";
+
+  useEffect(() => {
+    setSections((prev) => prev.map((item) => ({ ...item, tutorial: tutorial[item.key] })));
+    if (tutorial["window"] === false) setCollapsed(false);
   }, [tutorial]);
 
   const linkClasses = (isActive: boolean) =>
-    `
-      flex items-center
-      ${collapsed ? "justify-center" : "px-4"}
-      py-2
-      text-gray-800 font-medium
-      transition
-      hover:bg-gray-100
-      ${isActive ? "underline underline-offset-4 font-semibold" : ""}
-    `;
+    `flex items-center ${collapsed ? "justify-center" : "px-4"} py-2 text-gray-800 font-medium transition hover:bg-gray-100 ${isActive ? "underline underline-offset-4 font-semibold" : ""}`;
 
   return (
     <>
-      {/* Overlay for mobile */}
+      {/* 1. Mobile Toggle Bubble for REPORTS */}
+      {!mobileOpen && isReportingPhase && (
+        <div className="fixed top-4 left-4 md:hidden z-50">
+          <TutorialBubble
+            show={true}
+            text="Open menu to learn about Reporting!"
+            position="bottom-left"
+            condition={false}
+            additionalStyle="ml-4"
+          >
+            <button
+              onClick={() => setMobileOpen(true)}
+              className="p-3 bg-white rounded-xl shadow-lg border border-teal-100"
+            >
+              <Menu className="w-6 h-6 text-teal-600" />
+            </button>
+          </TutorialBubble>
+        </div>
+      )}
+
+      {/* 2. Mobile Toggle Bubble for OFFERS */}
+      {!mobileOpen && isOffersPhase && (
+        <div className="fixed top-4 left-4 md:hidden z-50">
+          <TutorialBubble
+            show={true}
+            text="Open menu to learn about Offers!"
+            position="bottom-left"
+            condition={false}
+            additionalStyle="ml-4"
+          >
+            <button
+              onClick={() => setMobileOpen(true)}
+              className="p-3 bg-white rounded-xl shadow-lg border border-teal-100"
+            >
+              <Menu className="w-6 h-6 text-teal-600" />
+            </button>
+          </TutorialBubble>
+        </div>
+      )}
+
+      {/* Standard Toggle (No Bubble) if tutorial is done or already on the page */}
+      {!mobileOpen && !isReportingPhase && !isOffersPhase && (
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="fixed top-4 left-4 md:hidden z-50 p-3 bg-white rounded-xl shadow-lg border border-teal-100"
+        >
+          <Menu className="w-6 h-6 text-teal-600" />
+        </button>
+      )}
+
       <div
-        className={`fixed inset-0 bg-black/40 z-20 transition-opacity md:hidden ${mobileOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-          }`}
+        className={`fixed inset-0 bg-black/40 z-20 transition-opacity md:hidden ${mobileOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
         onClick={() => setMobileOpen(false)}
       />
 
-      {/* Sidebar */}
       <aside
         className={`
           ${collapsed ? "w-16" : "w-48"} 
@@ -62,74 +110,45 @@ export default function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
           font-sora
         `}
       >
-        {/* Header */}
         <div className="flex items-center justify-between px-4 py-4">
           <button
-            onClick={() =>
-              window.innerWidth < 768
-                ? setMobileOpen(false)
-                : setCollapsed((prev) => !prev)
-            }
+            onClick={() => (window.innerWidth < 768 ? setMobileOpen(false) : setCollapsed((prev) => !prev))}
             className="p-1 rounded hover:bg-gray-100 absolute top-4 right-4"
           >
-            {mobileOpen && window.innerWidth < 768 ? (
-              <X className="w-5 h-5" />
-            ) : (
-              <Menu className="w-5 h-5" />
-            )}
+            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
 
-        {/* Links */}
         <nav className="flex-1 flex flex-col space-y-4 mt-4 relative">
           {sections.map((section) => {
-            const showReportsBubble = section.key === "reports" && tutorial["window"] === false && tutorial["reports"] == true;
-            const showOffersBubble =
-              section.key === "offers" &&
-              tutorial["window"] === false &&
-              tutorial["reports"] === false && tutorial["offers"] === true;
+            // Check specific keys
+            const isReportsStep = section.key === "reports" && isReportingPhase;
+            const isOffersStep = section.key === "offers" && isOffersPhase;
 
             return (
               <div key={section.name} className="relative">
-                <NavLink
-                  to={section.path}
-                  end
-                  onClick={() => setMobileOpen(false)}
-                  className={({ isActive }) => linkClasses(isActive)}
+                <TutorialBubble
+                  show={!collapsed && (isReportsStep || isOffersStep)}
+                  text={isReportsStep ? "Click here to Learn About Reports!" : "Click here to Learn About Offers!"}
+                  position="right"
+                  condition={false}
+                  additionalStyle="ml-2 !w-48 hidden sm:block"
                 >
-                  {collapsed ? section.name[0] : section.name}
-                </NavLink>
-
-                {/* Small Tutorial Bubble */}
-                {!collapsed && (showReportsBubble || showOffersBubble) && (
-                  <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 w-40 p-2 bg-black/90 text-white text-xs rounded shadow-lg z-50 pointer-events-none">
-                    {showReportsBubble
-                      ? "Click here to Learn About Reports!"
-                      : "Click here to Learn About What You Can Offer your Customers!"}
-                    <div className="absolute w-2 h-2 bg-black/90 rotate-45 -left-1 top-1/2 -translate-y-1/2" />
-                  </div>
-                )}
+                  <NavLink
+                    to={section.path}
+                    end
+                    onClick={() => setMobileOpen(false)}
+                    className={({ isActive }) => linkClasses(isActive)}
+                  >
+                    {collapsed ? section.name[0] : section.name}
+                  </NavLink>
+                </TutorialBubble>
               </div>
             );
           })}
         </nav>
 
-        {/* Settings */}
-        <NavLink
-          to="/settings"
-          onClick={() => setMobileOpen(false)}
-          className={({ isActive }) =>
-            `
-              flex items-center
-              ${collapsed ? "justify-center" : "px-4"}
-              py-2 mb-4
-              text-gray-800 font-medium
-              transition
-              hover:bg-gray-100
-              ${isActive ? "underline underline-offset-4 font-semibold" : ""}
-            `
-          }
-        >
+        <NavLink to="/settings" onClick={() => setMobileOpen(false)} className={({ isActive }) => linkClasses(isActive) + " mb-4"}>
           {collapsed ? "S" : "Settings"}
         </NavLink>
       </aside>

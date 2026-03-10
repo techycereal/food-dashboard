@@ -6,7 +6,7 @@ import { fetchEmails } from "../features/emails/emailsSlice";
 import { fetchOffers, saveOffers } from "../features/offers/offerSlice";
 import type { RootState, AppDispatch } from "../app/store";
 import { Menu } from "lucide-react";
-import { getAuth, onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
 import { clearAuth, setCredentials } from "../features/auth/authSlice";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../lib/firebase";
@@ -38,8 +38,6 @@ export default function Offers() {
   const selectedDeals = useSelector(
     (state: RootState) => state.offers.selectedDeals.deals
   );
-  // --- Redux State ---
-  const emails = useSelector((state: RootState) => state.emails.emails);
   const offerId = useSelector((state: RootState) => state.offers.selectedDeals.id);
   const offerStatus = useSelector((state: RootState) => state.offers.status);
   const [drinks, setDrinks] = useState<string[]>([]);
@@ -54,7 +52,6 @@ export default function Offers() {
 
   // --- Firebase Auth Listener ---
   useEffect(() => {
-    const auth = getAuth();
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         const token = await firebaseUser.getIdToken(true);
@@ -67,13 +64,12 @@ export default function Offers() {
           token,
         }));
 
-        // Only fetch if empty
-        if (!emails.length) dispatch(fetchEmails());
+        // Use functional checks instead of relying on dependencies
         if (!hasFetchedInitialData.current) {
-
-          hasFetchedInitialData.current = true; // Mark as done
+          dispatch(fetchEmails());
+          dispatch(fetchOffers());
+          hasFetchedInitialData.current = true;
         }
-        if (!Object.keys(selectedDeals).length) dispatch(fetchOffers());
       } else {
         dispatch(clearAuth());
         navigate("/signin");
@@ -81,7 +77,7 @@ export default function Offers() {
     });
 
     return () => unsubscribe();
-  }, [dispatch, navigate, selectedDeals, emails]);
+  }, [dispatch, navigate]); // REMOVED selectedDeals and emails
 
 
   useEffect(() => {

@@ -48,7 +48,7 @@ export default function Window({ handleEdit, setSelectedItem, openModal, openWiF
   const [businessName, setBusinessName] = useState(cachedName.length > 0 ? cachedName : '')
   const [tutorialStepIndex, setTutorialStepIndex] = useState(0);
   const [showErrorModal, setShowErrorModal] = useState(false);
-
+  console.log(cachedName)
   const currentStep: TutorialStep | null =
     showTutorial ? TUTORIAL_STEPS[tutorialStepIndex] : null;
 
@@ -67,7 +67,7 @@ export default function Window({ handleEdit, setSelectedItem, openModal, openWiF
   const finishTutorial = () => {
     // later: dispatch(updateTutorial({ window: false }))
     dispatch(changeTutorialStatusAsync('window'))
-    setTutorialStepIndex(0);
+
   };
 
   useEffect(() => {
@@ -153,7 +153,13 @@ export default function Window({ handleEdit, setSelectedItem, openModal, openWiF
         <img
           src={Chalk}
           alt="chalk texture"
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[52%] max-w-none opacity-[11%] pointer-events-none select-none z-0"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[52%] max-w-none opacity-[11%] pointer-events-none select-none z-0 hidden sm:block"
+        />
+
+        <img
+          src={Chalk}
+          alt="chalk texture"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[100%] rotate-90 max-w-none opacity-[15%] pointer-events-none select-none z-0 md:hidden"
         />
 
         {/* Desktop Add Item */}
@@ -189,14 +195,23 @@ export default function Window({ handleEdit, setSelectedItem, openModal, openWiF
           <div className="absolute top-4 left-4 z-20">
             <TutorialBubble
               show={isStep("wifi")}
-              text="Open Wi-Fi settings or view connection info."
+              text="Connect your CurbBox to WiFi here. Once your items are synced, you can go completely offline!"
               position="right"
               onNext={nextStep}
               condition
+              additionalStyle="hidden sm:block"
             >
-              <button
-                onClick={openWiFi}
-                className="
+              <TutorialBubble
+                show={isStep("wifi")}
+                text="Connect your CurbBox to WiFi here. Once your items are synced, you can go completely offline!"
+                position="bottom-left"
+                onNext={nextStep}
+                condition
+                additionalStyle="md:hidden"
+              >
+                <button
+                  onClick={openWiFi}
+                  className="
         p-2
         flex items-center gap-2
         font-bold text-white
@@ -206,9 +221,10 @@ export default function Window({ handleEdit, setSelectedItem, openModal, openWiF
         cursor-pointer
         bg-blue-400
       "
-              >
-                <FaWifi size={20} />
-              </button>
+                >
+                  <FaWifi size={20} />
+                </button>
+              </TutorialBubble>
             </TutorialBubble>
           </div>
         </div>
@@ -216,7 +232,7 @@ export default function Window({ handleEdit, setSelectedItem, openModal, openWiF
         {/* Header */}
         <div className="relative z-10 text-center py-20 md:py-18 lg:py-18 xl:py-12">
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-wide text-chalk-shadow">
-            {businessName}
+            {businessName.length < 1 ? cachedName : businessName}
           </h1>
         </div>
 
@@ -312,7 +328,7 @@ export default function Window({ handleEdit, setSelectedItem, openModal, openWiF
                                       show
                                       text={
                                         <>
-                                          Edit an existing <br /> menu  item
+                                          The pencil is to <br /> edit a menu item
                                         </>
                                       }
                                       position="bottom-right"
@@ -328,16 +344,28 @@ export default function Window({ handleEdit, setSelectedItem, openModal, openWiF
                                   {isFirstItem && isStep("delete-item") ? (
                                     <TutorialBubble
                                       show
-                                      text="Delete an item from your menu."
+                                      text="The trash can is to delete an item from your menu."
                                       position="bottom-right"
                                       onBack={prevStep}
                                       onNext={nextStep}
                                       condition
                                     >
-                                      <FaTrashCan size={20} onClick={() => setSelectedItem(item)} />
+                                      <FaTrashCan size={20} onClick={() => {
+                                        setSelectedItem(item)
+                                        console.log(showTutorial)
+                                        if (showTutorial) {
+                                          nextStep()
+                                        }
+                                      }} />
                                     </TutorialBubble>
                                   ) : (
-                                    <FaTrashCan size={20} onClick={() => setSelectedItem(item)} />
+                                    <FaTrashCan size={20} onClick={() => {
+                                      setSelectedItem(item)
+                                      console.log(showTutorial)
+                                      if (showTutorial) {
+                                        nextStep()
+                                      }
+                                    }} />
                                   )}
                                 </div>
                               </div>
@@ -367,8 +395,9 @@ export default function Window({ handleEdit, setSelectedItem, openModal, openWiF
             <div className="flex flex-col sm:hidden gap-2 px-6 pb-4">
               <TutorialBubble
                 show={isStep("sync-data")}
-                text="Push your menu live."
-                position="top"
+                text="After all your menu changes are made click this button so customers can start ordering offline!"
+
+                position={items.length > 0 ? "top" : "bottom"}
                 onBack={prevStep}
                 onDone={finishTutorial}
                 isLast
@@ -389,7 +418,7 @@ export default function Window({ handleEdit, setSelectedItem, openModal, openWiF
               <TutorialBubble
                 show={isStep("add-item")}
                 text="Add a New Menu Item To The Board (Required for The Next Step)"
-                position="top"
+                position={items.length > 0 ? 'top' : 'bottom'}
                 onBack={prevStep}
                 onNext={nextStep}
                 condition={items.length > 0}
@@ -433,10 +462,11 @@ export default function Window({ handleEdit, setSelectedItem, openModal, openWiF
       <div className="absolute bottom-6 right-6">
         <TutorialBubble
           show={isStep("sync-data")}
-          text="Push your menu live."
-          position="top"
+          text="After all your menu changes are made click this button so customers can start ordering offline!"
+          position={items.length > 0 ? "top" : "bottom"}
           onBack={prevStep}
           onDone={finishTutorial}
+          additionalStyle="hidden sm:block"
           isLast
           condition
         >

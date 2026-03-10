@@ -18,6 +18,7 @@ interface TutorialBubbleProps {
     isLast?: boolean;
     children?: React.ReactNode;
     condition: boolean;
+    additionalStyle?: string; // This can now take extra Tailwind classes or custom CSS
 }
 
 export function TutorialBubble({
@@ -29,6 +30,7 @@ export function TutorialBubble({
     onDone,
     children,
     condition,
+    additionalStyle = "" // Default to empty string to avoid "undefined" in classList
 }: TutorialBubbleProps) {
     if (!show) return <>{children}</>;
 
@@ -62,26 +64,27 @@ export function TutorialBubble({
             {/* Bubble */}
             <div
                 className={`
-          absolute z-50 w-40 md:w-56 p-3 sm:p-1 text-sm sm:text-xs
-          bg-black/90 text-white rounded-lg
-          shadow-lg
-          ${positionClasses[position]}
-        `}
+                    absolute z-50 w-40 md:w-56 p-3 sm:p-1 text-sm sm:text-xs
+                    bg-black/90 text-white rounded-lg
+                    shadow-lg transition-all duration-200
+                    ${positionClasses[position]}
+                    ${additionalStyle} 
+                `}
             >
                 <div className="whitespace-pre-line">{text}</div>
 
                 {/* Arrow */}
                 <div
                     className={`
-            absolute w-2 h-2 sm:w-1.5 sm:h-1.5 bg-black/90 rotate-45
-            ${arrowClasses[position]}
-          `}
+                        absolute w-2 h-2 sm:w-1.5 sm:h-1.5 bg-black/90 rotate-45
+                        ${arrowClasses[position]}
+                    `}
                 />
 
                 {(onNext || onBack || onDone) && (
                     <div className="flex justify-between items-center mt-3 text-xs sm:text-[10px]">
                         {onBack ? (
-                            <button onClick={onBack} className="underline opacity-70">
+                            <button onClick={onBack} className="underline opacity-70 hover:opacity-100">
                                 Back
                             </button>
                         ) : (
@@ -94,8 +97,7 @@ export function TutorialBubble({
                             </button>
                         ) : (
                             <>
-                                {console.log(condition)}
-                                {condition != false && (
+                                {condition !== false && onNext && (
                                     <button onClick={onNext} className="font-bold underline">
                                         Next
                                     </button>

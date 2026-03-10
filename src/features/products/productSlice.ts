@@ -111,16 +111,14 @@ export const changeTutorialStatusAsync = createAsyncThunk<
     if (!user) throw new Error("Not authenticated");
 
     // Only call backend if the section is "offers"
-    if (section === "offers") {
       const token = await user.getIdToken();
       await axios.put(
         `${apiUrl}/finish_tutorial`,
-        {},
+        {section},
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-    }
 
     return section; // return the section so extraReducer can update state
   }

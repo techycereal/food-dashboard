@@ -1,242 +1,223 @@
 import { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import axios from "axios";
-import { getAuth, signOut } from "firebase/auth";
-import { clearAuth } from "../features/auth/authSlice";
+import { getAuth, signOut, onAuthStateChanged } from "firebase/auth";
+import { clearAuth, setCredentials } from "../features/auth/authSlice";
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState } from "../app/store";
 import { addName } from "../features/products/productSlice";
 import { Menu } from "lucide-react";
-import { onAuthStateChanged } from "firebase/auth";
-import { setCredentials } from "../features/auth/authSlice";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../lib/firebase";
+
 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 export default function Settings() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  // State
   const [mobileOpen, setMobileOpen] = useState(false);
   const [inventoryCode, setInventoryCode] = useState("");
   const [codeSaved, setCodeSaved] = useState(false);
-
-  const cachedName = useSelector((state: RootState) => state.products.name);
-  const [businessName, setBusinessName] = useState(
-    cachedName.length > 0 ? cachedName : ""
-  );
   const [saved, setSaved] = useState(false);
-  const auths = useSelector((state: RootState) => state.auth.token);
-  const dispatch = useDispatch();
-  useEffect(() => {
-    const auth = getAuth();
 
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+  // Redux Selectors
+  const cachedName = useSelector((state: RootState) => state.products.name);
+  const auths = useSelector((state: RootState) => state.auth.token);
+  const [businessName, setBusinessName] = useState(cachedName || "");
+
+  // Auth Listener
+  useEffect(() => {
+    const authInstance = getAuth();
+    const unsubscribe = onAuthStateChanged(authInstance, async (firebaseUser) => {
       if (firebaseUser) {
         const token = await firebaseUser.getIdToken(true);
-        console.log(token)
-        dispatch(
-          setCredentials({
-            user: {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email,
-              displayName: firebaseUser.displayName,
-            },
-            token,
-          })
-        );
+        dispatch(setCredentials({
+          user: {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            displayName: firebaseUser.displayName,
+          },
+          token,
+        }));
       } else {
         dispatch(clearAuth());
         navigate("/signin");
       }
     });
-
     return () => unsubscribe();
   }, [dispatch, navigate]);
 
+  // Fetch Business Name if not in cache
   useEffect(() => {
-    const name = async () => {
-      const user = auth.currentUser;
-      if (!user) throw new Error("Not authenticated");
+    const fetchBusinessName = async () => {
+      try {
+        const user = auth.currentUser;
+        if (!user) return;
+        const token = await user.getIdToken();
+        const response = await axios.get(`${apiUrl}/get_name`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setBusinessName(response.data.message);
+        dispatch(addName(response.data.message));
+      } catch (err) {
+        console.error("Error fetching business name:", err);
+      }
+    };
 
-      const token = await user.getIdToken();
-      const response = await axios.get(`${apiUrl}/get_name`, { headers: { Authorization: `Bearer ${token}` } })
-      setBusinessName(response.data.message)
-      dispatch(addName(response.data.message))
-    }
     if (cachedName.length < 1) {
-      console.log('here')
-      name()
+      fetchBusinessName();
     }
-  }, [auth])
+  }, [cachedName, dispatch]);
 
-
-  const logout = async () => {
+  const handleLogout = async () => {
     try {
-      await fetch(`${apiUrl}/logout`, {
-        method: "POST",
-        credentials: "include",
-      });
-
-      const auth = getAuth();
+      await fetch(`${apiUrl}/logout`, { method: "POST", headers: { 'Authorization': `Bearer ${auths}` } });
       await signOut(auth);
       dispatch(clearAuth());
-
-      window.location.href = "/signin";
+      navigate("/signin");
     } catch (err) {
       console.error("Logout failed", err);
     }
   };
 
-  const saveCode = async () => {
+  const handleSaveName = async () => {
     try {
-      const response = await axios.post(`${apiUrl}/saveCode`, { inventoryCode }, { headers: { Authorization: `Bearer ${auths}` } })
+      const user = auth.currentUser;
+      if (!user) return;
+      const token = await user.getIdToken();
+      await axios.post(`${apiUrl}/add_business_name`,
+        { name: businessName },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      dispatch(addName(businessName));
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleSaveCode = async () => {
+    try {
+      await axios.post(`${apiUrl}/saveCode`,
+        { inventoryCode },
+        { headers: { Authorization: `Bearer ${auths}` } }
+      );
+      console.log('CODE SAVED')
       setCodeSaved(true);
       setTimeout(() => setCodeSaved(false), 2000);
-      console.log(response.data)
     } catch (err) {
-      console.log(err)
+      console.error(err);
     }
-  }
-
-  const saveName = async () => {
-    const user = auth.currentUser;
-    if (!user) throw new Error("Not authenticated");
-
-    const token = await user.getIdToken();
-    await axios.post(
-      `${apiUrl}/add_business_name`,
-      { name: businessName },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-
-    dispatch(addName(businessName));
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
   };
 
   return (
-    <div
-      className="min-h-screen w-full flex bg-[#b8f2f1]"
-      style={{
-        backgroundImage:
-          "linear-gradient(137.884deg, rgba(222,242,243,1) 0%, rgb(214,242,244) 50.018%)",
-      }}
-    >
+    <div className="min-h-screen w-full flex" style={{
+      backgroundImage:
+        "linear-gradient(137.884deg, rgba(222,242,243,1) 0%, rgb(214,242,244) 50.018%)",
+    }}>
       <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+
       {!mobileOpen && (
-        <div className="absolute top-4 left-4 md:hidden z-40">
-          <button
-            onClick={() => setMobileOpen((prev) => !prev)}
-            className="p-2 rounded bg-white shadow-md"
-          >
-            <Menu className="w-6 h-6" />
-          </button>
-        </div>
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="fixed top-4 left-4 md:hidden z-50 p-3 bg-white rounded-xl shadow-lg border border-teal-100"
+        >
+          <Menu className="w-6 h-6 text-teal-600" />
+        </button>
       )}
 
-      {/* Main Content */}
-      <div className="flex flex-1 flex-col items-center justify-center gap-8 p-6 figma-noise">
-        {/* Plaque */}
-        <div className="relative w-full max-w-[426px] aspect-[426/552] mx-auto">
-          {/* Frames */}
-          <div className="absolute inset-0 rounded-lg bg-[#844e22] shadow-lg" />
-          <div className="absolute inset-[3.5%] bg-[#f0e68c]" />
-          <div className="absolute inset-[6.5%] bg-[#141414]" />
+      {/* Main Content: md:ml-64 ensures it doesn't hide behind the sidebar */}
+      <div className="flex-1 flex flex-col items-center w-full md:ml-64 transition-all duration-300">
+        <div className="w-full max-w-lg flex flex-col gap-8 p-6 py-16 md:py-12">
 
-          {/* Content */}
-          <div className="absolute inset-[6.5%] flex flex-col items-center text-center text-[#ebe6b9] px-4">
-            <p className="mt-[14%] font-['Italianno',cursive] text-[clamp(18px,4vw,24px)]">
-              With Our Greatest
-            </p>
-
-            <p className="font-['Platypi',serif] text-[clamp(18px,4vw,24px)]">
-              APPRECIATION
-            </p>
-
-            <p className="mt-[8%] font-['Sora',sans-serif] font-bold text-[clamp(14px,3vw,16px)]">
-              We Honor
-            </p>
-            <input
-              value={businessName}
-              onChange={(e) => setBusinessName(e.target.value)}
-              placeholder="Enter business name"
-              className="font-['Sora',sans-serif] font-bold text-[clamp(16px,3.5vw,20px)] text-center bg-[#141414] b-[#f0e68c]"
-            />
-
-            <div className="mt-2 w-[60%] h-1 bg-[#ebe6b9]" />
-
-            <p className="mt-[8%] font-['Platypi',serif] text-[clamp(14px,3.5vw,20px)] leading-snug max-w-[85%]">
-              In Recognition for Your Partnership With CurbSuite
-            </p>
-
-            <p className="mt-auto mb-[10%] font-['Italianno',cursive] text-[clamp(28px,6vw,40px)]">
-              Thank You!
-            </p>
-            <button
-              onClick={saveName}
-              className="absolute right-2 bottom-2 bg-[#f0e68c] text-gray-700 px-2 py-1 rounded"
-            >
-              Save
-            </button>
-          </div>
-        </div>
-
-        {/* Controls */}
-        <div className="flex flex-col gap-3 w-full max-w-sm">
-          <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-6">
-            <h2 className="text-xl font-bold mb-2 text-gray-800">
-              Offline Inventory Access Code
-            </h2>
-
-            <p className="text-sm text-gray-600 mb-4 leading-relaxed">
-              Set a 6-digit code that allows you or your staff to manage inventory
-              during a rush directly from their phone — even without internet or
-              cell service. This works completely offline.
-            </p>
-
-            <input
-              type="text"
-              inputMode="numeric"
-              maxLength={6}
-              value={inventoryCode}
-              onChange={(e) => {
-                const value = e.target.value.replace(/\D/g, "");
-                setInventoryCode(value);
-              }}
-              placeholder="Enter 6-digit code"
-              className="w-full text-center tracking-widest text-lg border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-teal-400"
-            />
-
-            <button
-              onClick={() => {
-                if (inventoryCode.length === 6) {
-                  saveCode()
-                }
-              }}
-              className="mt-4 w-full bg-teal-500 hover:bg-teal-600 text-white py-2 rounded-lg font-semibold transition-transform hover:scale-105"
-            >
-              Save Code
-            </button>
-
-            {codeSaved && (
-              <p className="text-green-500 text-center mt-3 font-semibold">
-                Code Saved Successfully
-              </p>
-            )}
+          <div className="text-center space-y-2">
+            <h1 className="text-2xl font-bold text-gray-800">Settings</h1>
+            <p className="text-gray-600 text-sm">Update your business details and backup codes.</p>
           </div>
 
+          {/* 1. Plaque Section */}
+          <section className="relative">
+            <div className="relative aspect-[3/4] w-full rounded-2xl bg-[#844e22] shadow-2xl p-[4%]">
+              <div className="w-full h-full bg-[#f0e68c] p-[3%] rounded-sm">
+                <div className="w-full h-full bg-[#141414] flex flex-col items-center text-center text-[#ebe6b9] p-6 relative overflow-hidden">
+                  <p className="mt-8 font-['Italianno',cursive] text-2xl">With Our Greatest</p>
+                  <p className="font-['Platypi',serif] text-xl tracking-widest uppercase">Appreciation</p>
 
+                  <div className="mt-10 flex flex-col items-center w-full">
+                    <p className="font-['Sora',sans-serif] text-[10px] font-bold opacity-60 uppercase tracking-tighter">We Honor</p>
+                    <input
+                      value={businessName}
+                      onChange={(e) => setBusinessName(e.target.value)}
+                      placeholder="Business Name"
+                      className="w-full mt-2 font-['Sora',sans-serif] font-bold text-xl text-center bg-transparent border-b border-[#f0e68c]/20 focus:border-[#f0e68c] focus:outline-none py-1"
+                    />
+                  </div>
 
-          {saved && (
-            <p className="text-center text-green-500 font-bold animate-fadeIn">
-              Saved Business Name
-            </p>
-          )}
+                  <p className="mt-8 font-['Platypi',serif] text-sm leading-relaxed max-w-[80%] opacity-90">
+                    In Recognition for Your Partnership With CurbSuite
+                  </p>
 
-          <button
-            onClick={logout}
-            className="absolute right-4 p-2 bottom-4 bg-red-500 hover:bg-red-600 text-white py-3 rounded-lg font-semibold transition-transform hover:scale-105"
-          >
-            Logout
-          </button>
+                  <p className="mt-auto mb-6 font-['Italianno',cursive] text-5xl">Thank You!</p>
+
+                  <button
+                    onClick={handleSaveName}
+                    className="absolute bottom-4 right-4 bg-[#f0e68c] text-black text-[10px] font-black px-3 py-1.5 rounded-md hover:bg-white active:scale-95 transition-all"
+                  >
+                    {saved ? "✓ SAVED" : "SAVE NAME"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* 2. Inventory Code Section */}
+          <section className="bg-white rounded-3xl shadow-xl p-8 border border-white/60">
+            <h2 className="text-xl font-bold text-gray-800">Offline Inventory Code</h2>
+            <p className="text-sm text-gray-500 mb-6">Set a 6-digit code for offline stock management.</p>
+
+            <div className="space-y-4">
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                value={inventoryCode}
+                onChange={(e) => setInventoryCode(e.target.value.replace(/\D/g, ""))}
+                placeholder="— — — — — —"
+                className="w-full text-center tracking-[0.6em] text-3xl font-mono border-2 border-gray-100 rounded-2xl p-5 focus:border-teal-400 focus:outline-none transition-all"
+              />
+
+              <button
+                onClick={handleSaveCode}
+                disabled={inventoryCode.length !== 6}
+                className="w-full bg-teal-500 hover:bg-teal-600 disabled:bg-gray-100 text-white py-4 rounded-2xl font-bold text-lg shadow-lg active:scale-[0.98] transition-all"
+              >
+                Update Access Code
+              </button>
+
+              {/* This message will now reliably re-trigger on every successful click */}
+              <div className="h-6">
+                {codeSaved && (
+                  <p className="text-green-600 text-center text-sm font-semibold animate-bounce">
+                    ✓ Code updated successfully
+                  </p>
+                )}
+              </div>
+            </div>
+          </section>
+
+          {/* 3. Account Action Section */}
+          <section className="flex flex-col gap-4">
+            <button
+              onClick={handleLogout}
+              className="w-full bg-red-50 text-red-500 border-2 border-red-100 hover:bg-red-100 py-4 rounded-2xl font-bold transition-all flex items-center justify-center"
+            >
+              Log Out of CurbSuite
+            </button>
+          </section>
+
         </div>
       </div>
     </div>
