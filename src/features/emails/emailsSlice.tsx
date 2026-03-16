@@ -66,7 +66,12 @@ const initialState: EmailsState = {
 const emailsSlice = createSlice({
   name: "emails",
   initialState,
-  reducers: {},
+  reducers: {
+    resetEmailsState: (state) => {
+      state.emails = [];
+      state.status = "idle";
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchEmails.pending, (state) => {
@@ -84,5 +89,5 @@ const emailsSlice = createSlice({
       });
   },
 });
-
+export const { resetEmailsState } = emailsSlice.actions;
 export default emailsSlice.reducer;

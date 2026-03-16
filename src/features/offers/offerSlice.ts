@@ -2,11 +2,11 @@ import { createSlice, createAsyncThunk, type PayloadAction } from "@reduxjs/tool
 import axios from "axios";
 import type { RootState } from "../../app/store";
 import { auth } from "../../lib/firebase";
+
 //
 // TYPES
 //
 
-// Dynamic deal object
 export type DealType = Record<
   string,
   {
@@ -28,6 +28,7 @@ interface OffersState {
 }
 
 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 //
 // INITIAL STATE
 //
@@ -47,9 +48,9 @@ export const fetchOffers = createAsyncThunk<
   { state: RootState }
 >("offers/fetchOffers", async (_, { }) => {
   const user = auth.currentUser;
-      if (!user) throw new Error("Not authenticated");
+  if (!user) throw new Error("Not authenticated");
 
-      const token = await user.getIdToken();
+  const token = await user.getIdToken();
 
   const response = await axios.get(`${apiUrl}/get_offers`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -71,11 +72,11 @@ export const saveOffers = createAsyncThunk<
   { selectedDeals: DealType; id: string },
   { state: RootState }
 >("offers/saveOffers", async ({ selectedDeals, id }, { }) => {
-  const deals = selectedDeals
+  const deals = selectedDeals;
   const user = auth.currentUser;
-      if (!user) throw new Error("Not authenticated");
+  if (!user) throw new Error("Not authenticated");
 
-      const token = await user.getIdToken();
+  const token = await user.getIdToken();
 
   const response = await axios.post(
     `${apiUrl}/add_offer`,
@@ -102,26 +103,25 @@ const offersSlice = createSlice({
   name: "offers",
   initialState,
   reducers: {
+    // RESET ACTION ADDED HERE
+    resetOffersState: () => initialState,
+
     toggleDeal: (
-  state,
-  action: PayloadAction<{ name: string; future: string | null; show: number }>
-) => {
-  const { name, future, show } = action.payload;
+      state,
+      action: PayloadAction<{ name: string; future: string | null; show: number }>
+    ) => {
+      const { name, future, show } = action.payload;
 
-  // Ensure deals object exists
-  if (!state.selectedDeals.deals) {
-    state.selectedDeals.deals = {};
-  }
+      if (!state.selectedDeals.deals) {
+        state.selectedDeals.deals = {};
+      }
 
-  if (state.selectedDeals.deals[name]) {
-    delete state.selectedDeals.deals[name];
-  } else {
-    console.log(name)
-    console.log(future)
-    console.log(show)
-    state.selectedDeals.deals[name] = { name, future, show };
-  }
-},
+      if (state.selectedDeals.deals[name]) {
+        delete state.selectedDeals.deals[name];
+      } else {
+        state.selectedDeals.deals[name] = { name, future, show };
+      }
+    },
 
     setBusiness: (state, action: PayloadAction<string>) => {
       state.selectedDeals.business = action.payload;
@@ -157,5 +157,5 @@ const offersSlice = createSlice({
   },
 });
 
-export const { toggleDeal, setBusiness, setId } = offersSlice.actions;
+export const { toggleDeal, setBusiness, setId, resetOffersState } = offersSlice.actions;
 export default offersSlice.reducer;

@@ -128,6 +128,9 @@ const productsSlice = createSlice({
   name: "products",
   initialState,
   reducers: {
+    // ADDED: Reset action to wipe all product and tutorial data
+    resetProductsState: () => initialState,
+
     addProduct: (state, action: PayloadAction<Item>) => {
       state.items.push(action.payload);
     },
@@ -148,7 +151,6 @@ const productsSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // Products
       .addCase(fetchProducts.pending, (state) => {
         state.status = "loading";
       })
@@ -159,31 +161,32 @@ const productsSlice = createSlice({
       .addCase(fetchProducts.rejected, (state) => {
         state.status = "failed";
       })
-      // Tutorial
       .addCase(fetchTutorial.pending, (state) => {
         state.status = "loading";
       })
       .addCase(fetchTutorial.fulfilled, (state, action) => {
         state.tutorial = action.payload;
+        state.tutorialFetched = true; // Mark as fetched
         state.status = "idle";
       })
       .addCase(fetchTutorial.rejected, (state) => {
         state.status = "failed";
       })
-      // Handle the async tutorial status update
       .addCase(changeTutorialStatusAsync.fulfilled, (state, action) => {
         const section = action.payload;
-        (state.tutorial as Tutorial)[section] = false; // mark as done
+        if (state.tutorial) {
+          state.tutorial[section] = true; // Mark as done
+        }
       });
   },
 });
-
 
 export const {
   addProduct,
   updateProduct,
   deleteProduct,
-  addName
+  addName,
+  resetProductsState // Export this
 } = productsSlice.actions;
 
 export default productsSlice.reducer;

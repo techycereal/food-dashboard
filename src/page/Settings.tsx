@@ -9,7 +9,10 @@ import { addName } from "../features/products/productSlice";
 import { Menu } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../lib/firebase";
-
+import { resetProductsState } from "../features/products/productSlice";
+import { resetEmailsState } from "../features/emails/emailsSlice";
+import { resetOffersState } from "../features/offers/offerSlice";
+import { resetReportsState } from "../features/reports/reportSlice";
 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export default function Settings() {
@@ -27,7 +30,6 @@ export default function Settings() {
   const auths = useSelector((state: RootState) => state.auth.token);
   const [businessName, setBusinessName] = useState(cachedName || "");
 
-  // Auth Listener
   useEffect(() => {
     const authInstance = getAuth();
     const unsubscribe = onAuthStateChanged(authInstance, async (firebaseUser) => {
@@ -42,6 +44,9 @@ export default function Settings() {
           token,
         }));
       } else {
+        // CLEAR LOCAL STATE HERE
+        setBusinessName("");
+        setInventoryCode("");
         dispatch(clearAuth());
         navigate("/signin");
       }
@@ -69,13 +74,27 @@ export default function Settings() {
     if (cachedName.length < 1) {
       fetchBusinessName();
     }
-  }, [cachedName, dispatch]);
+  }, [cachedName, dispatch, auth.currentUser?.uid]);
 
   const handleLogout = async () => {
     try {
-      await fetch(`${apiUrl}/logout`, { method: "POST", headers: { 'Authorization': `Bearer ${auths}` } });
+      // Notify server
+      await fetch(`${apiUrl}/logout`, {
+        method: "POST",
+        headers: { 'Authorization': `Bearer ${auths}` }
+      });
+
+      // Sign out Firebase
       await signOut(auth);
+
+      // 2. DISPATCH ALL RESET ACTIONS
       dispatch(clearAuth());
+      dispatch(resetProductsState());
+      dispatch(resetEmailsState());
+      dispatch(resetOffersState());
+      dispatch(resetReportsState());
+
+      // 3. Navigate
       navigate("/signin");
     } catch (err) {
       console.error("Logout failed", err);

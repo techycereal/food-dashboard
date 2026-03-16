@@ -124,7 +124,10 @@ const initialState: ReportsState = {
 const reportsSlice = createSlice({
   name: "reports",
   initialState,
-  reducers: {},
+  reducers: {
+    // ADDED: Reset action to wipe all report and purchase data
+    resetReportsState: () => initialState,
+  },
   extraReducers: (builder) => {
     /* -------- Reports -------- */
     builder
@@ -132,10 +135,9 @@ const reportsSlice = createSlice({
         state.status = "loading";
       })
       .addCase(fetchReports.fulfilled, (state, action: PayloadAction<Report[]>) => {
-  state.status = "idle";
-  // REPLACE the state with the new array from the server
-  state.reports = action.payload; 
-})
+        state.status = "idle";
+        state.reports = action.payload;
+      })
       .addCase(fetchReports.rejected, (state) => {
         state.status = "failed";
       });
@@ -146,10 +148,9 @@ const reportsSlice = createSlice({
         state.timeStatus = "loading";
       })
       .addCase(fetchTimeReports.fulfilled, (state, action: PayloadAction<any[]>) => {
-  state.timeStatus = "idle";
-  // REPLACE the state
-  state.timeReports = action.payload;
-})
+        state.timeStatus = "idle";
+        state.timeReports = action.payload;
+      })
       .addCase(fetchTimeReports.rejected, (state) => {
         state.timeStatus = "failed";
       });
@@ -160,14 +161,14 @@ const reportsSlice = createSlice({
         state.purchaseStatus = "loading";
       })
       .addCase(fetchPurchases.fulfilled, (state, action: PayloadAction<Purchase[]>) => {
-  state.purchaseStatus = "idle";
-  // REPLACE the state (assuming payload is the array of purchases)
-  state.purchases = action.payload;
-})
+        state.purchaseStatus = "idle";
+        state.purchases = action.payload;
+      })
       .addCase(fetchPurchases.rejected, (state) => {
         state.purchaseStatus = "failed";
       });
   },
 });
 
+export const { resetReportsState } = reportsSlice.actions;
 export default reportsSlice.reducer;
