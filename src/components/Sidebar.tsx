@@ -1,5 +1,5 @@
 import { Menu, X } from "lucide-react";
-import { NavLink, useLocation } from "react-router-dom"; // Added useLocation
+import { NavLink, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import type { RootState } from "../app/store";
@@ -11,7 +11,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
-  const location = useLocation(); // Hook to track current page
+  const location = useLocation();
   const [sections, setSections] = useState([
     { name: "Inventory", path: "/", tutorial: false, key: "window" },
     { name: "Reports", path: "/reports", tutorial: false, key: "reports" },
@@ -19,10 +19,8 @@ export default function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
   ]);
 
   const tutorial = useSelector((state: RootState) => state.products.tutorial);
-  console.log(tutorial)
   const [collapsed, setCollapsed] = useState(false);
 
-  // Logic: Phase is active AND user is NOT currently on that page
   const isReportingPhase =
     tutorial["window"] === false &&
     tutorial["reports"] === true &&
@@ -44,56 +42,37 @@ export default function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
 
   return (
     <>
-      {/* 1. Mobile Toggle Bubble for REPORTS */}
-      {!mobileOpen && isReportingPhase && (
+      {/* --- SINGLE MOBILE TRIGGER CONTAINER --- */}
+      {/* This ensures only one button can ever exist on mobile */}
+      {!mobileOpen && (
         <div className="fixed top-4 left-4 md:hidden z-50">
-          <TutorialBubble
-            show={true}
-            text="Open menu to learn about Reporting!"
-            position="bottom-left"
-            condition={false}
-            additionalStyle="ml-4"
-          >
+          {(isReportingPhase || isOffersPhase) ? (
+            <TutorialBubble
+              show={true}
+              text={isReportingPhase ? "Open menu to learn about Reporting!" : "Open menu to learn about Offers!"}
+              position="bottom-left"
+              condition={false}
+              additionalStyle="ml-4"
+            >
+              <button
+                onClick={() => setMobileOpen(true)}
+                className="p-3 bg-white rounded-xl shadow-lg border border-teal-100"
+              >
+                <Menu className="w-6 h-6 text-teal-600" />
+              </button>
+            </TutorialBubble>
+          ) : (
             <button
               onClick={() => setMobileOpen(true)}
               className="p-3 bg-white rounded-xl shadow-lg border border-teal-100"
             >
               <Menu className="w-6 h-6 text-teal-600" />
             </button>
-          </TutorialBubble>
+          )}
         </div>
       )}
 
-      {/* 2. Mobile Toggle Bubble for OFFERS */}
-      {!mobileOpen && isOffersPhase && (
-        <div className="fixed top-4 left-4 md:hidden z-50">
-          <TutorialBubble
-            show={true}
-            text="Open menu to learn about Offers!"
-            position="bottom-left"
-            condition={false}
-            additionalStyle="ml-4"
-          >
-            <button
-              onClick={() => setMobileOpen(true)}
-              className="p-3 bg-white rounded-xl shadow-lg border border-teal-100"
-            >
-              <Menu className="w-6 h-6 text-teal-600" />
-            </button>
-          </TutorialBubble>
-        </div>
-      )}
-
-      {/* Standard Toggle (No Bubble) if tutorial is done or already on the page */}
-      {!mobileOpen && !isReportingPhase && !isOffersPhase && (
-        <button
-          onClick={() => setMobileOpen(true)}
-          className="fixed top-4 left-4 md:hidden z-50 p-3 bg-white rounded-xl shadow-lg border border-teal-100"
-        >
-          <Menu className="w-6 h-6 text-teal-600" />
-        </button>
-      )}
-
+      {/* Backdrop */}
       <div
         className={`fixed inset-0 bg-black/40 z-20 transition-opacity md:hidden ${mobileOpen ? "opacity-100" : "opacity-0 pointer-events-none"}`}
         onClick={() => setMobileOpen(false)}
@@ -110,18 +89,27 @@ export default function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
           font-sora
         `}
       >
-        <div className="flex items-center justify-between px-4 py-4">
+        {/* Top Control Section */}
+        <div className="flex items-center justify-end px-4 py-4 relative h-14">
+          {/* Mobile Close Button (Visible only when menu is open) */}
           <button
-            onClick={() => (window.innerWidth < 768 ? setMobileOpen(false) : setCollapsed((prev) => !prev))}
-            className="p-1 rounded hover:bg-gray-100 absolute top-4 right-4"
+            onClick={() => setMobileOpen(false)}
+            className="md:hidden p-2 rounded-lg hover:bg-gray-100 text-gray-500"
           >
-            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            <X className="w-6 h-6" />
+          </button>
+
+          {/* Desktop Collapse Button (Hidden on Mobile) */}
+          <button
+            onClick={() => setCollapsed((prev) => !prev)}
+            className="hidden md:block p-1 rounded hover:bg-gray-100 absolute top-4 right-4"
+          >
+            <Menu className="w-5 h-5" />
           </button>
         </div>
 
         <nav className="flex-1 flex flex-col space-y-4 mt-4 relative">
           {sections.map((section) => {
-            // Check specific keys
             const isReportsStep = section.key === "reports" && isReportingPhase;
             const isOffersStep = section.key === "offers" && isOffersPhase;
 

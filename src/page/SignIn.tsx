@@ -1,18 +1,23 @@
-// src/components/SignIn.tsx
 import { useState } from "react";
 import { auth } from "../lib/firebase";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
-import { AlertCircle } from "lucide-react"; // Optional: for a nicer error icon
+import { AlertCircle, X, CheckCircle2 } from "lucide-react";
 
 export default function SignIn() {
+  // Main Sign In States
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Mapping Firebase technical codes to user-friendly language
+  // Forgot Password Modal States
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+
   const getFriendlyErrorMessage = (errorCode: string) => {
     switch (errorCode) {
       case "auth/invalid-email":
@@ -50,6 +55,27 @@ export default function SignIn() {
     }
   };
 
+  const handleResetSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetLoading(true);
+    try {
+      await sendPasswordResetEmail(auth, resetEmail);
+      setResetSent(true);
+      // Auto-close modal after a delay so they can read the success message
+      setTimeout(() => {
+        setIsModalOpen(false);
+        setResetSent(false);
+        setResetEmail("");
+      }, 6000);
+    } catch (err: any) {
+      // Security Standard: Even if the email doesn't exist, we show a success state 
+      // to prevent account enumeration (hackers finding valid emails).
+      setResetSent(true);
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
   return (
     <div
       className="relative min-h-screen w-full overflow-x-hidden selection:bg-teal-100"
@@ -83,53 +109,37 @@ export default function SignIn() {
             flex flex-col
           "
         >
-          {/* Ambient Glow behind the card */}
           <div className="absolute -top-20 left-1/2 -translate-x-1/2 h-40 w-40 rounded-full bg-red-400/20 blur-[100px] pointer-events-none" />
 
           {/* Neon Sign Header */}
           <div className="relative flex items-center justify-center mb-14 shrink-0">
-            {/* Glass Backplate */}
-            <div className="absolute w-[260px] h-[110px] rounded-2xl bg-white/5 backdrop-blur-sm shadow-inner border border-white/10" />
+            <div className="absolute w-[260px] h-[110px] rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-inner" />
 
-            {/* Blue Neon Frame */}
             <div
-              className="absolute w-[260px] h-[110px] rounded-2xl"
+              className="absolute w-[260px] h-[110px] rounded-2xl border-[3px] border-blue-600 rotate-[4deg]"
               style={{
-                transform: "rotate(4deg)",
-                border: "2px solid rgba(80,80,255,0.7)",
-                boxShadow: "0 0 15px rgba(80,80,255,0.5), inset 0 0 10px rgba(80,80,255,0.3)",
+                boxShadow: "0 0 20px rgba(37,99,235,0.6), inset 0 0 15px rgba(37,99,235,0.4)"
               }}
             />
 
-            {/* Red Neon Frame */}
             <div
-              className="absolute w-[260px] h-[110px] rounded-2xl"
+              className="absolute w-[260px] h-[110px] rounded-2xl border-[3px] border-red-600 -rotate-[4deg]"
               style={{
-                transform: "rotate(-4deg)",
-                border: "2px solid rgba(255,80,80,0.8)",
-                boxShadow: "0 0 15px rgba(255,80,80,0.6), inset 0 0 10px rgba(255,80,80,0.4)",
+                boxShadow: "0 0 20px rgba(220,38,38,0.7), inset 0 0 15px rgba(220,38,38,0.5)"
               }}
             />
 
-            {/* Neon "Sign In" Text */}
             <h1
-              className="
-                relative z-10
-                font-extralight
-                text-[54px] sm:text-[62px]
-                tracking-tight
-                leading-none
-                select-none
-              "
+              className="relative z-10 font-light text-[54px] sm:text-[62px] tracking-tight leading-none select-none text-white"
               style={{
-                color: "#FFD1D1",
-                WebkitTextStroke: "1px #FF3B3B",
+                WebkitTextStroke: "1.5px #FF1E1E",
                 textShadow: `
-                  0 0 2px #FFFFFF,
-                  0 0 8px #FFD1D1,
-                  0 0 15px #FF6B6B,
-                  0 0 35px rgba(255, 80, 80, 0.6)
-                `,
+                  0 0 5px #FFF,
+                  0 0 10px #FFD1D1,
+                  0 0 20px #FF4D4D,
+                  0 0 40px #FF0000,
+                  0 0 60px rgba(255, 0, 0, 0.4)
+                `
               }}
             >
               Sign In
@@ -160,19 +170,7 @@ export default function SignIn() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder="name@company.com"
-                className="
-                  h-[58px]
-                  rounded-2xl
-                  bg-white/60
-                  px-5
-                  text-black
-                  border border-black/5
-                  outline-none
-                  focus:bg-white
-                  focus:border-[#2E7D32]
-                  focus:ring-4 focus:ring-[#2E7D32]/5
-                  transition-all
-                "
+                className="h-[58px] rounded-2xl bg-white/60 px-5 text-black border border-black/5 outline-none focus:bg-white focus:border-[#2E7D32] focus:ring-4 focus:ring-[#2E7D32]/5 transition-all"
               />
             </div>
 
@@ -186,49 +184,102 @@ export default function SignIn() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 placeholder="••••••••"
-                className="
-                  h-[58px]
-                  rounded-2xl
-                  bg-white/60
-                  px-5
-                  text-black
-                  border border-black/5
-                  outline-none
-                  focus:bg-white
-                  focus:border-[#2E7D32]
-                  focus:ring-4 focus:ring-[#2E7D32]/5
-                  transition-all
-                "
+                className="h-[58px] rounded-2xl bg-white/60 px-5 text-black border border-black/5 outline-none focus:bg-white focus:border-[#2E7D32] focus:ring-4 focus:ring-[#2E7D32]/5 transition-all"
               />
+            </div>
+
+            {/* Forgot Password Link - Now opens Modal */}
+            <div className="flex justify-end pr-1">
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(true)}
+                className="text-xs font-['Sora',sans-serif] font-semibold text-[#2E7D32] hover:text-[#1B5E20] transition-colors"
+              >
+                Forgot Password?
+              </button>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="
-                mt-4
-                h-[58px]
-                w-full
-                rounded-2xl
-                bg-[#2E7D32]
-                text-white
-                font-medium
-                text-lg
-                shadow-xl shadow-green-900/10
-                hover:bg-[#1B5E20]
-                hover:shadow-green-900/20
-                disabled:opacity-70
-                disabled:cursor-not-allowed
-                transition-all
-                active:scale-[0.98]
-              "
+              className="mt-2 h-[58px] w-full rounded-2xl bg-[#2E7D32] text-white font-medium text-lg shadow-xl shadow-green-900/10 hover:bg-[#1B5E20] hover:shadow-green-900/20 disabled:opacity-70 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
             >
               {loading ? "Authenticating..." : "Sign In to Dashboard"}
             </button>
-
           </form>
         </div>
       </div>
+
+      {/* --- Forgot Password Modal --- */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm animate-in fade-in duration-200">
+          <div
+            className="relative w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl p-8 sm:p-10 border border-white/50 animate-in zoom-in-95 duration-200"
+          >
+            {/* Close Button */}
+            <button
+              onClick={() => setIsModalOpen(false)}
+              className="absolute top-6 right-6 p-2 rounded-full hover:bg-gray-100 transition-colors"
+            >
+              <X className="w-5 h-5 text-gray-400" />
+            </button>
+
+            {!resetSent ? (
+              <>
+                <h2 className="font-['Sora',sans-serif] text-2xl font-semibold text-gray-900 mb-2">
+                  Reset Password
+                </h2>
+                <p className="text-gray-500 text-sm font-['Sora',sans-serif] mb-8 leading-relaxed">
+                  Enter your email address and we'll send you a secure link to reset your password.
+                </p>
+
+                <form onSubmit={handleResetSubmit} className="flex flex-col gap-6">
+                  <div className="flex flex-col gap-2">
+                    <label className="ml-1 font-['Sora',sans-serif] text-xs font-semibold uppercase tracking-wider text-black/40">
+                      Email Address
+                    </label>
+                    <input
+                      autoFocus
+                      type="email"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      required
+                      placeholder="name@company.com"
+                      className="h-[54px] rounded-xl bg-gray-50 px-5 text-black border border-black/5 outline-none focus:bg-white focus:border-[#2E7D32] transition-all"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={resetLoading}
+                    className="h-[54px] w-full rounded-xl bg-[#2E7D32] text-white font-semibold shadow-lg hover:bg-[#1B5E20] disabled:opacity-70 transition-all active:scale-[0.98]"
+                  >
+                    {resetLoading ? "Sending Link..." : "Send Reset Link"}
+                  </button>
+                </form>
+              </>
+            ) : (
+              <div className="text-center py-6 flex flex-col items-center animate-in fade-in zoom-in-95">
+                <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mb-6">
+                  <CheckCircle2 className="w-10 h-10 text-[#2E7D32]" />
+                </div>
+                <h2 className="font-['Sora',sans-serif] text-2xl font-semibold text-gray-900 mb-2">
+                  Check your email
+                </h2>
+                <p className="text-gray-500 text-sm font-['Sora',sans-serif] leading-relaxed">
+                  If an account exists for <span className="text-black font-medium">{resetEmail}</span>,
+                  you will receive a password reset link shortly.
+                </p>
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className="mt-8 text-sm font-semibold text-[#2E7D32] hover:underline"
+                >
+                  Back to Sign In
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

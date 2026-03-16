@@ -7,7 +7,7 @@ import {
   fetchPurchases,
 } from "../features/reports/reportSlice";
 import Sidebar from "../components/Sidebar";
-import { Menu, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import "@tailwindplus/elements";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { clearAuth, setCredentials } from "../features/auth/authSlice";
@@ -38,6 +38,7 @@ export default function ReportsDashboard() {
   const [period, setPeriod] = useState<Period>("Daily");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
+  const [hasInitialized, setHasInitialized] = useState(false); // New flag
 
   const tutorial = useSelector((state: RootState) => state.products.tutorial);
   const { user } = useSelector((state: RootState) => state.auth);
@@ -47,16 +48,18 @@ export default function ReportsDashboard() {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleRefresh = useCallback(async () => {
-    setIsRefreshing(true); // Start loading animation
+    setIsRefreshing(true);
     try {
-      // Unwrapping ensures we catch errors if the fetch fails
-      await dispatch(fetchPurchases())
-      await dispatch(fetchReports())
-      await dispatch(fetchTimeReports())
+      // Run fetches in parallel for better performance
+      await Promise.all([
+        dispatch(fetchPurchases()),
+        dispatch(fetchReports()),
+        dispatch(fetchTimeReports())
+      ]);
     } catch (error) {
       console.error("Refresh failed:", error);
     } finally {
-      setIsRefreshing(false); // Stop loading animation
+      setIsRefreshing(false);
     }
   }, [dispatch]);
 
@@ -69,10 +72,9 @@ export default function ReportsDashboard() {
         navigate("/signin");
         return;
       }
-      const token = await firebaseUser.getIdToken(true);
       dispatch(setCredentials({
         user: { uid: firebaseUser.uid, email: firebaseUser.email, displayName: firebaseUser.displayName },
-        token,
+        token: await firebaseUser.getIdToken(true),
       }));
       dispatch(fetchTutorial());
     });
@@ -81,23 +83,27 @@ export default function ReportsDashboard() {
 
   // Initial Data Fetch
   useEffect(() => {
-    if (user) {
-      handleRefresh();
-    }
-  }, [dispatch, user, handleRefresh]);
+    const init = async () => {
+      if (user) {
+        await handleRefresh();
+        setHasInitialized(true); // Mark as loaded once data arrives
+      }
+    };
+    init();
+  }, [user, handleRefresh]);
 
   // Loading text rotation
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (status === "loading" || timeStatus === "loading") {
+    if (status === "loading" || timeStatus === "loading" || !hasInitialized) {
       interval = setInterval(() => {
         setLoadingMessageIndex((prev) => (prev + 1) % LOADING_MESSAGES.length);
       }, 2500);
     }
     return () => clearInterval(interval);
-  }, [status, timeStatus]);
+  }, [status, timeStatus, hasInitialized]);
 
-  // Derived Data
+  // Derived Data (keep your existing useMemos here)
   const filteredPeriods = useMemo(() => {
     return timeReports.filter((tp) => {
       switch (period) {
@@ -136,7 +142,8 @@ export default function ReportsDashboard() {
     uniqueCustomers: new Set(filteredPeriods.flatMap((f) => f.uniqueCustomers || [])).size,
   }), [filteredPeriods]);
 
-  const isLoading = !user || status === "loading" || timeStatus === "loading";
+  // Updated Loading condition
+  const isLoading = !user || !hasInitialized || status === "loading" || timeStatus === "loading";
 
   if (isLoading) {
     return (
@@ -154,12 +161,6 @@ export default function ReportsDashboard() {
   return (
     <div className="w-full min-h-screen p-4 sm:p-6 flex flex-col gap-8" style={{ backgroundImage: "linear-gradient(137.884deg, rgba(222,242,243,1) 0%, rgb(214,242,244) 50.018%)" }}>
       <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
-      {!mobileOpen && (
-        <button onClick={() => setMobileOpen(true)} className="md:hidden fixed top-4 left-4 z-40 bg-white p-2 rounded shadow">
-          <Menu />
-        </button>
-      )}
-
       <TutorialBubble show={tutorialStep === 0 && tutorial.reports === true} text="This overview shows your total revenue, orders, and best sellers." position="bottom" onNext={() => setTutorialStep(1)} condition>
         <ReportBoard currentSummary={currentSummary} bestSeller={bestSeller} />
       </TutorialBubble>

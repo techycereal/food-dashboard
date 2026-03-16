@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { Menu } from "lucide-react";
 import Window from "./components/Window";
 import Modal from "./components/Modal";
 import axios from "axios";
@@ -118,17 +117,6 @@ export default function App() {
   return (
     <div className="h-screen w-full bg-[#b8f2f1] relative overflow-hidden" style={{ backgroundImage: "linear-gradient(90deg, rgba(184, 154, 122, 0) 0%, rgba(184, 154, 122, 0) 100%), linear-gradient(134.583deg, rgba(214, 242, 244, 0) 48.915%, rgb(167, 216, 255) 93.019%), linear-gradient(137.884deg, rgba(222, 242, 243, 1) 0%, rgb(214, 242, 244) 50.018%)" }}>
       <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
-
-      {!mobileOpen && (
-        <div className="absolute top-4 left-4 md:hidden z-40">
-          <button
-            onClick={() => setMobileOpen((prev) => !prev)}
-            className="p-2 rounded bg-white shadow-md"
-          >
-            <Menu className="w-6 h-6" />
-          </button>
-        </div>
-      )}
 
       <main
         className={`w-full min-h-screen flex flex-col items-center justify-center p-6 md:p-8 relative md:ml-16`}

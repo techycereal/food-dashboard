@@ -5,7 +5,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchEmails } from "../features/emails/emailsSlice";
 import { fetchOffers, saveOffers } from "../features/offers/offerSlice";
 import type { RootState, AppDispatch } from "../app/store";
-import { Menu } from "lucide-react";
 import { onAuthStateChanged } from "firebase/auth";
 import { clearAuth, setCredentials } from "../features/auth/authSlice";
 import { useNavigate } from "react-router-dom";
@@ -16,7 +15,7 @@ import SelectedDeals from "../components/SelectedDeals";
 import EmailOffer from "../components/EmailOffer";
 import axios from "axios";
 import { Loader2 } from "lucide-react";
-import { TutorialBubble } from "../components/TutorialBubble"; // make sure to import
+import { TutorialBubble } from "../components/TutorialBubble";
 import { changeTutorialStatusAsync } from "../features/products/productSlice";
 export type DealType = Record<string, { name: string; future: string | null; show: number }>;
 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -35,6 +34,7 @@ export default function Offers() {
   // --- Local State ---
   const [mobileOpen, setMobileOpen] = useState(false);
   const [drinkModal, setDrinkModal] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false); // ADDED
   const selectedDeals = useSelector(
     (state: RootState) => state.offers.selectedDeals.deals
   );
@@ -43,14 +43,13 @@ export default function Offers() {
   const [drinks, setDrinks] = useState<string[]>([]);
   const status = useSelector((state: RootState) => state.offers.status);
   const tutorial = useSelector((state: RootState) => state.products.tutorial)
-  const [tutorialStep, setTutorialStep] = useState(0); // ✅ add tutorial step
-  // --- Sample Deals ---
+  const [tutorialStep, setTutorialStep] = useState(0);
+
   const deals: DealType = {
     "Free drink with any meal": { name: "Free drink with any meal", future: null, show: 1 },
     "10% off your next purchase": { name: "10% off your next purchase", future: "10% off", show: 1 },
   };
 
-  // --- Firebase Auth Listener ---
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
@@ -64,12 +63,12 @@ export default function Offers() {
           token,
         }));
 
-        // Use functional checks instead of relying on dependencies
         if (!hasFetchedInitialData.current) {
           dispatch(fetchEmails());
           dispatch(fetchOffers());
           hasFetchedInitialData.current = true;
         }
+        setHasInitialized(true); // ADDED
       } else {
         dispatch(clearAuth());
         navigate("/signin");
@@ -77,8 +76,7 @@ export default function Offers() {
     });
 
     return () => unsubscribe();
-  }, [dispatch, navigate]); // REMOVED selectedDeals and emails
-
+  }, [dispatch, navigate]);
 
   useEffect(() => {
     const getDrinks = async () => {
@@ -88,7 +86,6 @@ export default function Offers() {
 
         const token = await user.getIdToken();
         const response = await axios.get(`${apiUrl}/get_drinks`, { headers: { 'Authorization': `Bearer ${token}` } })
-        console.log(response.data.data[0].drinks)
         setDrinks(response.data.data[0].drinks)
       } catch (err) {
         console.error("Failed to fetch drinks:", err);
@@ -97,9 +94,8 @@ export default function Offers() {
     getDrinks()
   }, []);
 
-
-  console.log(status)
-  if (status == 'loading') {
+  // UPDATED LOADING CHECK
+  if (!hasInitialized || status == 'loading') {
     return (
       <div
         className="h-screen w-full flex bg-[#b8f2f1] overflow-y-auto pb-10"
@@ -111,7 +107,6 @@ export default function Offers() {
         </div>
       </div>
     )
-
   }
 
   return (
@@ -119,31 +114,16 @@ export default function Offers() {
       className="h-screen w-full flex bg-[#b8f2f1] overflow-y-auto pb-10"
       style={backgroundGradient}
     >
-      {/* Sidebar */}
       <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
 
-      {/* Mobile Menu Button */}
-      {!mobileOpen && (
-        <div className="absolute top-4 left-4 md:hidden z-40">
-          <button
-            onClick={() => setMobileOpen(true)}
-            className="p-2 rounded bg-white shadow-md"
-          >
-            <Menu className="w-6 h-6" />
-          </button>
-        </div>
-      )}
-
-      {/* Drink Modal */}
       {drinkModal && <DrinkModal setDrinkModal={setDrinkModal} drinks={drinks} setDrinks={setDrinks} />}
 
       <div className="flex-1 px-6 py-8 max-w-6xl mx-auto space-y-8">
-        {/* Deals Section */}
         <TutorialBubble
-          show={tutorialStep === 0 && tutorial.offers === true} // start tutorial at step 0
+          show={tutorialStep === 0 && tutorial.offers === true}
           text="Here you can toggle between what deals you want to provide your customers. The selected deals are the deals customers will see."
           position="bottom"
-          onNext={() => setTutorialStep(1)} // advance tutorial
+          onNext={() => setTutorialStep(1)}
           condition
         >
           <AvailableDeals deals={deals} />
@@ -159,10 +139,10 @@ export default function Offers() {
         </TutorialBubble>
 
         <TutorialBubble
-          show={tutorialStep === 1 && tutorial.offers === true} // start tutorial at step 0
+          show={tutorialStep === 1 && tutorial.offers === true}
           text="Here you can review your email offers and manage which deals to send to your customers."
           position="top"
-          onNext={() => setTutorialStep(2)} // advance tutorial
+          onNext={() => setTutorialStep(2)}
           onDone={() => { dispatch(changeTutorialStatusAsync('offers')); setTutorialStep(1); }}
           condition
         >
