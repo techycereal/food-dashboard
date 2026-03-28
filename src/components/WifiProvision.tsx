@@ -30,7 +30,7 @@ export default function WifiProvisionerModal({ closeModal }: WiFiProps) {
     try {
       setStatus("Pairing with Hub...");
       const device = await (navigator as any).bluetooth.requestDevice({
-        filters: [{ name: "CurbBox" }],
+        filters: [{ name: "Pi4-BLE-WiFi" }],
         optionalServices: [SERVICE_UUID],
       });
 
