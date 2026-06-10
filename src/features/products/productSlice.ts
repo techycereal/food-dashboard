@@ -111,6 +111,7 @@ export const changeTutorialStatusAsync = createAsyncThunk<
     if (!user) throw new Error("Not authenticated");
 
     // Only call backend if the section is "offers"
+    console.log('te')
       const token = await user.getIdToken();
       await axios.put(
         `${apiUrl}/finish_tutorial`,
@@ -175,7 +176,7 @@ const productsSlice = createSlice({
       .addCase(changeTutorialStatusAsync.fulfilled, (state, action) => {
         const section = action.payload;
         if (state.tutorial) {
-          state.tutorial[section] = true; // Mark as done
+          state.tutorial[section] = false; // Mark as done
         }
       });
   },

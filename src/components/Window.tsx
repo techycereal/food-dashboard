@@ -37,7 +37,8 @@ export default function Window({ handleEdit, setSelectedItem, openModal, openWiF
   const auth = useSelector((state: RootState) => state.auth.token);
   const cachedName = useSelector((state: RootState) => state.products.name)
   const tutorial = useSelector((state: RootState) => state.products.tutorial)
-  let showTutorial = tutorial['window'] === true;
+  let showTutorial = tutorial['window'];
+  console.log(showTutorial)
   const dispatch = useDispatch<AppDispatch>()
   const loading = status === "loading";
   const [syncing, setSyncing] = useState(false);
@@ -67,7 +68,6 @@ export default function Window({ handleEdit, setSelectedItem, openModal, openWiF
   const finishTutorial = () => {
     // later: dispatch(updateTutorial({ window: false }))
     dispatch(changeTutorialStatusAsync('window'))
-
   };
 
   useEffect(() => {

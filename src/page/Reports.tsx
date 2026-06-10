@@ -46,7 +46,7 @@ export default function ReportsDashboard() {
     (state: RootState) => state.reports as ReportsState
   );
   const [isRefreshing, setIsRefreshing] = useState(false);
-
+  console.log(reports)
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
     try {
@@ -193,22 +193,46 @@ export default function ReportsDashboard() {
                 </thead>
                 <tbody>
                   {reports.map((report) => (
-                    <tr key={report.id} className="hover:bg-gray-50 border-t">
-                      <td className="p-2">{report.email || 'No Email'}</td>
+                    <tr key={report.id} className="hover:bg-gray-50 border-t items-start">
+                      <td className="p-2 vertical-align-top">{report.email || 'No Email'}</td>
                       <td className="p-2">
-                        <ul className="list-disc ml-4 space-y-1">
+                        <ul className="list-disc ml-4 space-y-2">
                           {report.items.map((obj, idx) => (
-                            <li key={idx}>{obj.item} (x{obj.quantity})</li>
+                            <li key={idx} className="space-y-0.5">
+                              <span className="font-semibold">{obj.item}</span> (x{obj.quantity})
+
+                              {/* 🌟 NEW: Conditional Customizations Checklist Sub-View */}
+                              {obj.customizations && obj.customizations.length > 0 && (
+                                <ul className="pl-4 mt-0.5 space-y-0.5 border-l-2 border-gray-100 ml-1">
+                                  {obj.customizations.map((mod, modIdx) => (
+                                    <li key={modIdx} className="text-xs text-gray-500 capitalize list-none flex items-center gap-1">
+                                      <span className="text-green-600 font-bold text-[10px]">▪</span>
+                                      <span>{mod.name}</span>
+                                      {Number(mod.price) > 0 && (
+                                        <span className="text-gray-400 font-medium">(+${Number(mod.price).toFixed(2)})</span>
+                                      )}
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                            </li>
                           ))}
                         </ul>
                       </td>
-                      <td className="p-2 whitespace-nowrap">${(report.totalPrice).toFixed(2)}</td>
-                      <td className="p-2 whitespace-nowrap">{new Date(report._ts * 1000).toLocaleString()}</td>
+                      <td className="p-2 whitespace-nowrap align-top">${(report.totalPrice).toFixed(2)}</td>
+                      <td className="p-2 whitespace-nowrap align-top">
+                        {/* Supports both Cosmos raw _ts formatting or standardized ISO timestamp strings */}
+                        {report._ts
+                          ? new Date(report._ts * 1000).toLocaleString()
+                          : new Date(report.timestamp).toLocaleString()}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            ) : <p className="text-center text-lg">No Transactions</p>}
+            ) : (
+              <p className="text-center text-lg">No Transactions</p>
+            )}
           </div>
         </EmailBoard>
       </TutorialBubble>
@@ -218,10 +242,33 @@ export default function ReportsDashboard() {
           <h1 className="text-center font-bold text-2xl pb-6">Transactions</h1>
           {reports.map((report) => (
             <div key={report.id} className="hover:bg-gray-50 border-t">
-              <h1 className="p-2 font-bold text-sm">Date: {new Date(report._ts * 1000).toLocaleString()}</h1>
+              <h1 className="p-2 font-bold text-sm">
+                Date: {report._ts
+                  ? new Date(report._ts * 1000).toLocaleString()
+                  : new Date(report.timestamp).toLocaleString()}
+              </h1>
               <p className="p-2 text-sm"><span>Customer: </span>{report.email || 'No Email'}</p>
-              <div className="p-2">
-                {report.items.map((obj, idx) => <p key={idx}>Items: {obj.item} (x{obj.quantity})</p>)}
+              <div className="p-2 space-y-1">
+                {report.items.map((obj, idx) => (
+                  <div key={idx} className="text-sm">
+                    <p className="font-medium">Items: {obj.item} (x{obj.quantity})</p>
+
+                    {/* 🌟 ADDED: Only render customizations if they exist on the record */}
+                    {obj.customizations && obj.customizations.length > 0 && (
+                      <ul className="pl-6 mt-0.5 space-y-0.5 list-none">
+                        {obj.customizations.map((mod, modIdx) => (
+                          <li key={modIdx} className="text-xs text-gray-500 capitalize flex items-center gap-1">
+                            <span className="text-green-600 text-[10px]">▪</span>
+                            <span>{mod.name}</span>
+                            {Number(mod.price) > 0 && (
+                              <span className="text-gray-400 font-mono text-[11px]">(+${Number(mod.price).toFixed(2)})</span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ))}
               </div>
               <p className="p-2 whitespace-nowrap">Total Payment: ${(report.totalPrice).toFixed(2)}</p>
             </div>
