@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from "@reduxjs/toolkit";
 import axios from "axios";
-import type { Key, ReactNode } from "react";
+import type { Key } from "react";
 import type { RootState } from "../../app/store";
 import { auth } from "../../lib/firebase";
 
@@ -9,22 +9,34 @@ import { auth } from "../../lib/firebase";
 ======================= */
 
 type Item = {
-  quantity: ReactNode;
-  item: ReactNode;
   id: {
     quantity: number;
     item: string;
     timestamp: Date;
   };
+  item: string;
+  quantity: number;
+  price: number; // Base unit cost tracking index
+  customizations: ReportModifier[];
 };
 
-type Report = {
-  totalPrice: number;
-  _ts: number;
-  id: Key | null | undefined;
-  items: Item[];
-  email: string;
+export type ReportModifier = {
+  name: string;
   price: number;
+  category: "size" | "toppings" | "extras" | "free_sides" | "paid_sides";
+};
+
+
+export type Report = {
+  id: Key;
+  orderId: string; // The stable base SQLite row sequence id mapping
+  email: string | null;
+  totalPrice: number; // Final aggregated billing value (Item Price * Qty + Mods)
+  timestamp: string; // Unified standard ISO format timestamp string
+  _ts: number; // Optional metadata timestamp tracking if reading from Cosmos DB directly
+  items: Item[]; // Clean array distribution sequence containing structural elements
+  business: string; // Multitenant partition lookup verification path identifier
+  type: "report";
 };
 
 type Purchase = {
@@ -91,6 +103,7 @@ export const fetchPurchases = createAsyncThunk<
   });
   
   // Now this matches the Purchase[] return type defined above
+  console.log(response.data.data)
   return response.data.data;
 });
 /* =======================
