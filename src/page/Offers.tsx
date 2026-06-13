@@ -80,19 +80,25 @@ export default function Offers() {
 
   useEffect(() => {
     const getDrinks = async () => {
+      // Only run this if Firebase has finished initializing
+      if (!hasInitialized) return;
+
       try {
         const user = auth.currentUser;
         if (!user) throw new Error("Not authenticated");
 
         const token = await user.getIdToken();
-        const response = await axios.get(`${apiUrl}/get_drinks`, { headers: { 'Authorization': `Bearer ${token}` } })
-        setDrinks(response.data.data[0].drinks)
+        const response = await axios.get(`${apiUrl}/get_drinks`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        setDrinks(response.data.data[0].drinks);
       } catch (err) {
         console.error("Failed to fetch drinks:", err);
       }
-    }
-    getDrinks()
-  }, []);
+    };
+
+    getDrinks();
+  }, [hasInitialized]);
 
   // UPDATED LOADING CHECK
   if (!hasInitialized || status == 'loading') {
