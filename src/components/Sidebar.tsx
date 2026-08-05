@@ -16,6 +16,7 @@ export default function Sidebar({ mobileOpen, setMobileOpen }: SidebarProps) {
     { name: "Inventory", path: "/", tutorial: false, key: "window" },
     { name: "Reports", path: "/reports", tutorial: false, key: "reports" },
     { name: "Offers", path: "/offers", tutorial: false, key: "offers" },
+    { name: "Locations", path: "/location", tutorial: false, key: "offers" },
   ]);
 
   const tutorial = useSelector((state: RootState) => state.products.tutorial);
